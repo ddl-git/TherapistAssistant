@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 
@@ -6,7 +7,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SECRET_KEY = os.environ["SECRET_KEY"]
-APP_PASSWORD_HASH = os.environ["APP_PASSWORD_HASH"]
+
+
+def _load_password_hash() -> str:
+    """Legge APP_PASSWORD_HASH. Se inizia con 'base64:', decodifica prima:
+    alcuni pannelli di hosting (es. Render) possono alterare i simboli '$' e
+    ':' se incollati direttamente nel valore di una variabile d'ambiente,
+    quindi per l'uso online si preferisce passare l'hash codificato in Base64
+    (solo lettere/numeri, nessun carattere che possa essere frainteso).
+    In locale nel file .env si può continuare a usare il valore in chiaro.
+    """
+    raw = os.environ["APP_PASSWORD_HASH"]
+    if raw.startswith("base64:"):
+        return base64.b64decode(raw[len("base64:"):]).decode("utf-8")
+    return raw
+
+
+APP_PASSWORD_HASH = _load_password_hash()
 
 # Render imposta automaticamente RENDER=true su ogni servizio: usato per capire
 # se siamo online (cookie di sessione solo via HTTPS) o in sviluppo locale
