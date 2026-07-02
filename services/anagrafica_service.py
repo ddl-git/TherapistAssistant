@@ -120,12 +120,20 @@ def list_costi_fissi() -> list[dict]:
     return sheets_client.get_records_with_rows(config.TAB_COSTI_FISSI)
 
 
-def add_costo_fisso(nome: str, importo_mensile, data_inizio: str, data_fine: str = "") -> None:
-    sheets_client.append_row(config.TAB_COSTI_FISSI, [nome, importo_mensile, data_inizio, data_fine])
+def add_costo_fisso(
+    nome: str, piattaforma: str, tipo_prestazione: str, importo_mensile, data_inizio: str, data_fine: str = ""
+) -> None:
+    sheets_client.append_row(
+        config.TAB_COSTI_FISSI, [nome, piattaforma, tipo_prestazione, importo_mensile, data_inizio, data_fine]
+    )
 
 
-def update_costo_fisso(row: int, nome: str, importo_mensile, data_inizio: str, data_fine: str = "") -> None:
-    sheets_client.update_row(config.TAB_COSTI_FISSI, row, [nome, importo_mensile, data_inizio, data_fine])
+def update_costo_fisso(
+    row: int, nome: str, piattaforma: str, tipo_prestazione: str, importo_mensile, data_inizio: str, data_fine: str = ""
+) -> None:
+    sheets_client.update_row(
+        config.TAB_COSTI_FISSI, row, [nome, piattaforma, tipo_prestazione, importo_mensile, data_inizio, data_fine]
+    )
 
 
 def delete_costo_fisso(row: int) -> None:

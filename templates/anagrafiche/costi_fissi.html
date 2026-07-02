@@ -6,7 +6,9 @@
   <div class="page-eyebrow mt-2">Anagrafica</div>
   <h1 class="h3 mb-1">Costi fissi</h1>
   <p class="text-muted mb-0 small">
-    Spese periodiche indipendenti dalle sedute (affitto ufficio, abbonamenti software, ecc.).
+    Spese periodiche indipendenti dalle sedute (affitto ufficio, abbonamenti software, ecc.). Lascia
+    "Piattaforma" o "Tipo prestazione" su "Tutte" per ripartire il costo su ogni seduta; scegline una per
+    ripartirlo solo sulle sedute di quel tipo (es. l'affitto dello studio solo sulle sedute in Studio).
   </p>
 </div>
 
@@ -21,11 +23,18 @@
 
 <div class="card-table table-responsive mb-4">
   <table class="table table-sm align-middle mb-0">
-    <thead><tr><th>Nome</th><th>Importo mensile</th><th>Data inizio</th><th>Data fine</th><th></th></tr></thead>
+    <thead>
+      <tr>
+        <th>Nome</th><th>Piattaforma</th><th>Tipo prestazione</th><th>Importo mensile</th>
+        <th>Data inizio</th><th>Data fine</th><th></th>
+      </tr>
+    </thead>
     <tbody>
       {% for r in righe %}
         <tr>
           <td>{{ r['Nome'] }}</td>
+          <td><span class="badge text-bg-light border">{{ r['Piattaforma'] or 'Tutte' }}</span></td>
+          <td>{{ r['Tipo prestazione'] or 'Tutte' }}</td>
           <td>{{ r['Importo mensile'] }} €</td>
           <td>{{ r['Data inizio'] }}</td>
           <td>{{ r['Data fine'] or 'Ricorrente (nessuna scadenza)' }}</td>
@@ -40,7 +49,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="text-muted text-center py-4">Nessun costo fisso ancora.</td></tr>
+        <tr><td colspan="7" class="text-muted text-center py-4">Nessun costo fisso ancora.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -59,7 +68,26 @@
       <input type="text" class="form-control" name="nome" placeholder="Es. Affitto ufficio"
              value="{{ valori['Nome'] if valori else '' }}" required>
     </div>
-    <div class="col-12 col-sm-2">
+    <div class="col-12 col-sm-4">
+      <label class="form-label">Piattaforma</label>
+      <select class="form-select" name="piattaforma">
+        <option value="">Tutte</option>
+        {% for p in piattaforme %}
+          <option value="{{ p['Nome'] }}" {{ 'selected' if valori and valori['Piattaforma'] == p['Nome'] else '' }}>{{ p['Nome'] }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Es. "Studio" per l'affitto, se paghi solo le sedute in studio.</div>
+    </div>
+    <div class="col-12 col-sm-4">
+      <label class="form-label">Tipo prestazione</label>
+      <select class="form-select" name="tipo_prestazione">
+        <option value="">Tutte</option>
+        {% for t in tipi_prestazione %}
+          <option value="{{ t['Nome'] }}" {{ 'selected' if valori and valori['Tipo prestazione'] == t['Nome'] else '' }}>{{ t['Nome'] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-sm-3">
       <label class="form-label">Importo mensile (€)</label>
       <input type="text" inputmode="decimal" class="form-control" name="importo_mensile"
              value="{{ valori['Importo mensile'] if valori else '' }}" required>

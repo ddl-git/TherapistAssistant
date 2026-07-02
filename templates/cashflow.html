@@ -1,137 +1,330 @@
 {% extends "base.html" %}
 {% block title %}Flusso di cassa{% endblock %}
 {% block content %}
-<div class="mb-4">
-  <div class="page-eyebrow">Contabilità</div>
-  <h1 class="h3 mb-0">Flusso di cassa</h1>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <div class="page-eyebrow">Contabilità</div>
+    <h1 class="h3 mb-1">Flusso di cassa</h1>
+    <p class="text-muted mb-0 small">Riepilogo di incassi, crediti aperti, costi e disponibilità reale.</p>
+  </div>
+  <a class="btn btn-dark text-nowrap"
+     href="{{ url_for('cashflow.export_csv', da=date_from, a=date_to, stato=stato, metodo=metodo, paziente=paziente) }}">
+    <i class="bi bi-download"></i> Esporta
+  </a>
 </div>
 
-<form method="get" class="card-table p-3 mb-4 row g-2 align-items-end">
-  <div class="col-auto">
-    <label class="form-label small mb-1">Dal</label>
-    <input type="date" class="form-control" name="da" value="{{ date_from }}">
+<form method="get" class="card-table p-3 mb-4">
+  <div class="row g-2 align-items-end mb-2">
+    <div class="col-auto">
+      <label class="form-label small mb-1">Dal</label>
+      <input type="date" class="form-control" name="da" value="{{ date_from }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small mb-1">Al</label>
+      <input type="date" class="form-control" name="a" value="{{ date_to }}">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">Filtra</button>
+    </div>
+    <div class="col-auto">
+      <a class="btn btn-outline-secondary"
+         href="{{ url_for('cashflow.index', stato=stato, metodo=metodo, paziente=paziente) }}">Mese</a>
+      <a class="btn btn-outline-secondary"
+         href="{{ url_for('cashflow.index', da=oggi_anno_inizio, a=oggi, stato=stato, metodo=metodo, paziente=paziente) }}">Anno</a>
+    </div>
   </div>
-  <div class="col-auto">
-    <label class="form-label small mb-1">Al</label>
-    <input type="date" class="form-control" name="a" value="{{ date_to }}">
-  </div>
-  <div class="col-auto">
-    <button type="submit" class="btn btn-primary">Filtra</button>
-    <a class="btn btn-outline-secondary" href="{{ url_for('cashflow.index') }}">Mese in corso</a>
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-sm-4">
+      <label class="form-label small mb-1">Stato</label>
+      <select class="form-select" name="stato">
+        <option value="" {{ 'selected' if not stato else '' }}>Tutti</option>
+        <option value="incassato" {{ 'selected' if stato == 'incassato' else '' }}>Incassato</option>
+        <option value="da_incassare" {{ 'selected' if stato == 'da_incassare' else '' }}>Da incassare</option>
+        <option value="scaduto" {{ 'selected' if stato == 'scaduto' else '' }}>Scaduto</option>
+      </select>
+    </div>
+    <div class="col-12 col-sm-4">
+      <label class="form-label small mb-1">Metodo</label>
+      <select class="form-select" name="metodo">
+        <option value="">Tutti</option>
+        {% for m in opzioni_metodo %}
+          <option value="{{ m }}" {{ 'selected' if metodo == m else '' }}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-sm-4">
+      <label class="form-label small mb-1">Paziente</label>
+      <input type="text" class="form-control" name="paziente" placeholder="Cerca paziente…" value="{{ paziente }}">
+    </div>
   </div>
 </form>
 
-<div class="row g-4">
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Incassato</div>
+      <div class="stat-card-value text-success">{{ '%.2f'|format(netto_operativo) }} €</div>
+      <div class="text-muted small">{{ numero_incassati }} movimenti incassati</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Da incassare</div>
+      <div class="stat-card-value" style="color:#b06d00;">{{ '%.2f'|format(netto_da_incassare) }} €</div>
+      <div class="text-muted small">{{ numero_da_incassare }} aperti</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Accantonamenti</div>
+      <div class="stat-card-value">{{ '%.2f'|format(accantonamento) }} €</div>
+      <div class="text-muted small">{{ aliquota_accantonamento_pct }}% del netto operativo</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card stat-card--dark">
+      <div class="stat-card-label">Disponibile reale</div>
+      <div class="stat-card-value">{{ '%.2f'|format(disponibile_reale) }} €</div>
+      <div class="small" style="color:#adb5bd;">dopo costi e accantonamenti</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
   <div class="col-12 col-lg-7">
-    <div class="card-table p-4">
-      <div class="page-eyebrow mb-3">Conto economico del periodo (solo incassato)</div>
-
-      <div class="py-2 border-bottom">
-        <div class="d-flex justify-content-between align-items-center">
-          <button class="btn btn-link p-0 text-decoration-none text-reset" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#dettaglio-ricavi">
-            <i class="bi bi-chevron-right small"></i> Ricavi incassati (lordo)
-          </button>
-          <span class="fw-semibold">{{ '%.2f'|format(lordo_incassato) }} €</span>
-        </div>
-        <div class="collapse mt-2" id="dettaglio-ricavi">
-          <ul class="list-group list-group-flush">
-            {% for m in incassati %}
-              <li class="list-group-item d-flex justify-content-between border-0 py-1 ps-4 small">
-                <span class="text-muted">{{ m.data.strftime('%d %b') if m.data else '' }} — {{ m.paziente }} ({{ m.piattaforma }})</span>
-                <span>{{ '%.2f'|format(m.lordo) }} €</span>
-              </li>
-            {% else %}
-              <li class="list-group-item text-muted border-0 py-1 ps-4 small">Nessun ricavo incassato nel periodo selezionato.</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-
-      <div class="py-2 border-bottom text-muted">
-        <div class="d-flex justify-content-between align-items-center">
-          <button class="btn btn-link p-0 text-decoration-none text-reset" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#dettaglio-trattenute">
-            <i class="bi bi-chevron-right small"></i> – Trattenute (fee piattaforma, tasse, Enpap...)
-          </button>
-          <span>– {{ '%.2f'|format(trattenute_incassate) }} €</span>
-        </div>
-        <div class="collapse mt-2" id="dettaglio-trattenute">
-          <ul class="list-group list-group-flush">
-            {% for voce, importo in trattenute_breakdown.items() %}
-              <li class="list-group-item d-flex justify-content-between border-0 py-1 ps-4 small">
-                <span>{{ voce }}</span>
-                <span>{{ '%.2f'|format(importo) }} €</span>
-              </li>
-            {% else %}
-              <li class="list-group-item text-muted border-0 py-1 ps-4 small">Nessuna trattenuta nel periodo selezionato.</li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-
+    <div class="card-table p-4 h-100">
+      <div class="page-eyebrow mb-3">Riepilogo flusso di cassa</div>
       <div class="d-flex justify-content-between py-2 border-bottom">
-        <span>= Netto incassato</span>
-        <span class="fw-semibold">{{ '%.2f'|format(netto_incassato) }} €</span>
+        <span>Ricavi incassati lordi</span>
+        <span class="fw-semibold">{{ '%.2f'|format(lordo_incassato) }} €</span>
       </div>
-
-      <div class="py-2 border-bottom text-muted">
-        <div class="d-flex justify-content-between align-items-center">
-          <button class="btn btn-link p-0 text-decoration-none text-reset" type="button"
-                  data-bs-toggle="collapse" data-bs-target="#dettaglio-costi-fissi-inline">
-            <i class="bi bi-chevron-right small"></i> – Costi fissi del periodo (affitto, abbonamenti...)
-          </button>
-          <span>– {{ '%.2f'|format(totale_costi_fissi) }} €</span>
-        </div>
-        <div class="collapse mt-2" id="dettaglio-costi-fissi-inline">
-          <ul class="list-group list-group-flush">
-            {% for c in costi_fissi %}
-              <li class="list-group-item d-flex justify-content-between border-0 py-1 ps-4 small">
-                <span>{{ c.nome }} <span class="text-muted">({{ c.giorni }} giorni · {{ c.importo_mensile }} €/mese)</span></span>
-                <span>{{ '%.2f'|format(c.importo_periodo) }} €</span>
-              </li>
-            {% else %}
-              <li class="list-group-item text-muted border-0 py-1 ps-4 small">Nessun costo fisso nel periodo selezionato.</li>
-            {% endfor %}
-          </ul>
-        </div>
+      <div class="d-flex justify-content-between py-2 border-bottom text-muted">
+        <span>Fee / commissioni</span>
+        <span>− {{ '%.2f'|format(totale_costi_variabili) }} €</span>
       </div>
-
+      <div class="d-flex justify-content-between py-2 border-bottom">
+        <span class="fw-semibold">Netto operativo</span>
+        <span class="fw-semibold">{{ '%.2f'|format(netto_operativo) }} €</span>
+      </div>
+      <div class="d-flex justify-content-between py-2 border-bottom text-muted">
+        <span>Costi fissi <span class="small">(periodo intero, indipendentemente da quante sedute già pagate)</span></span>
+        <span>− {{ '%.2f'|format(totale_costi_fissi) }} €</span>
+      </div>
+      <div class="d-flex justify-content-between py-2 border-bottom text-muted">
+        <span>Accantonamenti · {{ aliquota_accantonamento_pct }}%</span>
+        <span>− {{ '%.2f'|format(accantonamento) }} €</span>
+      </div>
       <div class="d-flex justify-content-between align-items-center pt-3">
-        <span class="fs-5 fw-semibold">Cassa disponibile</span>
-        <span class="fs-3 fw-bold {{ 'text-success' if cassa_disponibile >= 0 else 'text-danger' }}">
-          {{ '%.2f'|format(cassa_disponibile) }} €
+        <span class="fs-5 fw-semibold">Disponibile reale</span>
+        <span class="fs-3 fw-bold {{ 'text-success' if disponibile_reale >= 0 else 'text-danger' }}">
+          {{ '%.2f'|format(disponibile_reale) }} €
         </span>
       </div>
     </div>
   </div>
 
   <div class="col-12 col-lg-5">
-    <div class="info-banner mb-3">
-      <i class="bi bi-hourglass-split me-1"></i>
-      <strong>Da incassare nel periodo</strong> ({{ numero_da_incassare }} movimenti, non ancora in cassa):
-      lordo {{ '%.2f'|format(lordo_da_incassare) }} € — netto {{ '%.2f'|format(netto_da_incassare) }} €
+    <div class="page-eyebrow mb-2">Da fare · alert</div>
+    <div class="d-flex flex-column gap-2">
+      {% if numero_da_incassare > 0 %}
+        <div class="info-banner" style="background:#fff4e5; border-color:#ffe1b3; color:#8a5300;">
+          <i class="bi bi-hourglass-split me-1"></i>
+          <strong>{{ numero_da_incassare }} movimenti da incassare</strong><br>
+          <span class="small">Lordo {{ '%.2f'|format(lordo_da_incassare) }} € · netto atteso {{ '%.2f'|format(netto_da_incassare) }} €</span>
+        </div>
+      {% endif %}
+      {% if not costi_fissi %}
+        <div class="info-banner" style="background:#fff4e5; border-color:#ffe1b3; color:#8a5300;">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          <strong>Nessun costo fisso configurato</strong><br>
+          <span class="small">Aggiungi affitto, software o supervisione per un flusso realistico —
+            <a href="{{ url_for('anagrafiche.costi_fissi') }}">vai alle Anagrafiche</a>.</span>
+        </div>
+      {% endif %}
+      <div class="info-banner">
+        <i class="bi bi-info-circle me-1"></i>
+        <strong>Regime forfettario · {{ aliquota_forfettario_pct }}%</strong><br>
+        <span class="small">Stima imposte sul netto operativo del periodo: {{ '%.2f'|format(imposte_forfettario_stimate) }} €.</span>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="card-table">
-      <div class="page-eyebrow p-3 pb-0">Dettaglio costi fissi nel periodo</div>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+  <div class="page-eyebrow mb-0">Da incassare</div>
+  <div class="text-muted small">{{ numero_da_incassare }} crediti aperti</div>
+</div>
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead>
+      <tr><th>Data</th><th>Paziente</th><th>Prestazione</th><th>Lordo</th><th>Stato</th><th>Azione</th></tr>
+    </thead>
+    <tbody>
+      {% for m in da_incassare %}
+        <tr>
+          <td>{{ m.data.strftime('%d %b %Y') if m.data else '–' }}</td>
+          <td>{{ m.paziente }}</td>
+          <td>{{ m.tipo_prestazione }}</td>
+          <td>{{ '%.2f'|format(m.lordo) + ' €' if m.lordo else '–' }}</td>
+          <td>
+            {% if m.stato_derivato == 'scaduto' %}
+              <span class="status-badge" style="background:#fde8e8; color:#c92a2a;"><span class="status-dot"></span>Scaduto</span>
+            {% else %}
+              <span class="status-badge status-badge--da-incassare"><span class="status-dot"></span>Aperto</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('movimenti.aggiorna_pagamento', row=m._row) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="stato_pagamento" value="Incassato">
+              <input type="hidden" name="next" value="{{ pagina_corrente }}">
+              <button type="submit" class="btn btn-sm btn-outline-success">Segna incassato</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-muted text-center py-4">Nessun credito aperto per i filtri selezionati.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="card-table h-100">
+      <div class="d-flex justify-content-between align-items-center p-3 pb-0">
+        <div class="page-eyebrow mb-0">Costi fissi</div>
+        <span class="fw-semibold">{{ '%.2f'|format(totale_costi_fissi) }} €</span>
+      </div>
       <ul class="list-group list-group-flush">
         {% for c in costi_fissi %}
-          <li class="list-group-item d-flex justify-content-between align-items-center border-0 border-top">
+          <li class="list-group-item d-flex justify-content-between border-0 border-top">
             <span>
               {{ c.nome }}
-              <span class="text-muted small d-block">{{ c.giorni }} giorni · {{ c.importo_mensile }} €/mese</span>
+              <span class="text-muted small d-block">
+                {{ c.giorni }} gg · {{ c.piattaforma or 'Tutte' }}{{ ' · ' + c.tipo_prestazione if c.tipo_prestazione else '' }}
+              </span>
             </span>
-            <span class="fw-semibold">{{ '%.2f'|format(c.importo_periodo) }} €</span>
+            <span>{{ '%.2f'|format(c.importo_periodo) }} €</span>
           </li>
         {% else %}
-          <li class="list-group-item text-muted border-0">
-            Nessun costo fisso configurato per questo periodo.
-            <a href="{{ url_for('anagrafiche.costi_fissi') }}">Aggiungine uno</a>.
-          </li>
+          <li class="list-group-item text-muted border-0">Nessun costo fisso configurato.</li>
         {% endfor %}
       </ul>
     </div>
   </div>
+  <div class="col-12 col-md-4">
+    <div class="card-table h-100">
+      <div class="d-flex justify-content-between align-items-center p-3 pb-0">
+        <div class="page-eyebrow mb-0">Costi variabili</div>
+        <span class="fw-semibold text-danger">{{ '%.2f'|format(totale_costi_variabili) }} €</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for piattaforma, importo in costi_variabili_per_piattaforma.items() %}
+          <li class="list-group-item d-flex justify-content-between border-0 border-top">
+            <span>Commissioni {{ piattaforma }}</span>
+            <span>{{ '%.2f'|format(importo) }} €</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted border-0">Nessun costo variabile nel periodo.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card-table h-100">
+      <div class="page-eyebrow p-3 pb-0">Accantonamenti stimati</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between border-0 border-top">
+          <span>Imposte · forfettario {{ aliquota_forfettario_pct }}%</span>
+          <span class="fw-semibold">{{ '%.2f'|format(imposte_forfettario_stimate) }} €</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between border-0 border-top">
+          <span>Riserva sul netto {{ aliquota_accantonamento_pct }}%</span>
+          <span class="fw-semibold">{{ '%.2f'|format(accantonamento) }} €</span>
+        </li>
+      </ul>
+    </div>
+  </div>
 </div>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div class="page-eyebrow mb-0">Movimenti del periodo</div>
+  <div class="filter-pills">
+    <button type="button" class="filter-pill active" data-filtro="tutti">Tutti <span data-conteggio="tutti"></span></button>
+    <button type="button" class="filter-pill" data-filtro="incassato">Incassati <span data-conteggio="incassato"></span></button>
+    <button type="button" class="filter-pill" data-filtro="da_incassare">Da incassare <span data-conteggio="da_incassare"></span></button>
+    <button type="button" class="filter-pill" data-filtro="scaduto">Scaduti <span data-conteggio="scaduto"></span></button>
+    <button type="button" class="filter-pill" data-filtro="costo">Costi <span data-conteggio="costo"></span></button>
+  </div>
+</div>
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0" id="tabella-ledger">
+    <thead>
+      <tr><th>Data</th><th>Tipo</th><th>Soggetto</th><th>Descrizione</th><th>Stato</th><th>Lordo</th><th>Netto</th></tr>
+    </thead>
+    <tbody>
+      {% for r in ledger %}
+        <tr data-riga="{{ 'costo' if r.filtro == 'costo' else 'entrata' }}" data-filtro="{{ r.filtro }}">
+          <td>{{ r.data.strftime('%d %b %Y') if r.data else '–' }}</td>
+          <td>
+            {% if r.tipo == 'Entrata' %}
+              <span class="status-dot" style="background:#198754;"></span>
+            {% else %}
+              <span class="status-dot" style="background:#c92a2a;"></span>
+            {% endif %}
+            {{ r.tipo }}
+          </td>
+          <td>{{ r.soggetto }}</td>
+          <td>{{ r.descrizione }}</td>
+          <td>{{ r.stato }}</td>
+          <td>{{ '%.2f'|format(r.lordo) + ' €' if r.lordo else '–' }}</td>
+          <td class="{{ 'text-danger' if r.netto < 0 else '' }}">{{ '%.2f'|format(r.netto) }} €</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-muted text-center py-4">Nessun movimento per i filtri selezionati.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+(function () {
+  var pills = document.querySelectorAll('.filter-pill');
+  var rows = document.querySelectorAll('#tabella-ledger tbody tr[data-filtro]');
+
+  function aggiornaConteggi() {
+    var conteggi = { tutti: 0, incassato: 0, da_incassare: 0, scaduto: 0, costo: 0 };
+    rows.forEach(function (row) {
+      var f = row.dataset.filtro;
+      if (row.dataset.riga === 'entrata') conteggi.tutti++;
+      if (conteggi[f] !== undefined) conteggi[f]++;
+    });
+    document.querySelectorAll('[data-conteggio]').forEach(function (el) {
+      el.textContent = conteggi[el.dataset.conteggio] || 0;
+    });
+  }
+
+  function applica(filtro) {
+    rows.forEach(function (row) {
+      var visibile;
+      if (filtro === 'tutti') visibile = row.dataset.riga === 'entrata';
+      else if (filtro === 'da_incassare') visibile = row.dataset.filtro === 'da_incassare' || row.dataset.filtro === 'scaduto';
+      else visibile = row.dataset.filtro === filtro;
+      row.style.display = visibile ? '' : 'none';
+    });
+  }
+
+  pills.forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      pills.forEach(function (p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      applica(pill.dataset.filtro);
+    });
+  });
+
+  aggiornaConteggi();
+  applica('tutti');
+})();
+</script>
 {% endblock %}

@@ -12,7 +12,7 @@
   </div>
 </div>
 
-<form method="get" class="card-table p-3 mb-4 row g-2 align-items-end">
+<form method="get" class="card-table p-3 mb-3 row g-2 align-items-end">
   <div class="col-auto">
     <label class="form-label small mb-1">Dal</label>
     <input type="date" class="form-control" name="da" value="{{ date_from }}">
@@ -22,34 +22,66 @@
     <input type="date" class="form-control" name="a" value="{{ date_to }}">
   </div>
   <div class="col-auto">
-    <button type="submit" class="btn btn-primary">Filtra</button>
+    <button type="submit" class="btn btn-primary">Filtra periodo</button>
     <a class="btn btn-outline-secondary" href="{{ url_for('report.index') }}">Reset</a>
   </div>
 </form>
+
+<div class="card-table p-3 mb-4 row g-2 align-items-end">
+  <div class="col-12 col-sm-6 col-md-3">
+    <label class="form-label small mb-1">Paziente</label>
+    <select class="form-select" id="filtro-paziente">
+      <option value="">Tutti</option>
+      {% for p in opzioni_pazienti %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-6 col-md-3">
+    <label class="form-label small mb-1">Piattaforma</label>
+    <select class="form-select" id="filtro-piattaforma">
+      <option value="">Tutte</option>
+      {% for p in opzioni_piattaforme %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-6 col-md-3">
+    <label class="form-label small mb-1">Tipo prestazione</label>
+    <select class="form-select" id="filtro-tipo">
+      <option value="">Tutti</option>
+      {% for t in opzioni_tipi %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-6 col-md-3">
+    <label class="form-label small mb-1">Stato pagamento</label>
+    <select class="form-select" id="filtro-stato">
+      <option value="">Tutti</option>
+      <option value="Incassato">Incassato</option>
+      <option value="Da incassare">Da incassare</option>
+    </select>
+  </div>
+</div>
 
 <div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
   <div class="col">
     <div class="stat-card">
       <div class="stat-card-label">Lordo totale</div>
-      <div class="stat-card-value">{{ '%.2f'|format(totale_lordo) }} €</div>
+      <div class="stat-card-value" id="stat-lordo-totale">–</div>
     </div>
   </div>
   <div class="col">
     <div class="stat-card">
       <div class="stat-card-label">Netto totale</div>
-      <div class="stat-card-value">{{ '%.2f'|format(totale_netto) }} €</div>
+      <div class="stat-card-value" id="stat-netto-totale">–</div>
     </div>
   </div>
   <div class="col">
     <div class="stat-card">
       <div class="stat-card-label">Lordo incassato</div>
-      <div class="stat-card-value text-success">{{ '%.2f'|format(totale_incassato_lordo) }} €</div>
+      <div class="stat-card-value text-success" id="stat-lordo-incassato">–</div>
     </div>
   </div>
   <div class="col">
     <div class="stat-card">
       <div class="stat-card-label">Netto incassato</div>
-      <div class="stat-card-value text-success">{{ '%.2f'|format(totale_incassato_netto) }} €</div>
+      <div class="stat-card-value text-success" id="stat-netto-incassato">–</div>
     </div>
   </div>
 </div>
@@ -63,63 +95,219 @@
   <div class="col-12 col-md-4 mb-4">
     <div class="card-table">
       <div class="page-eyebrow p-3 pb-0">Per tipo prestazione</div>
-      <ul class="list-group list-group-flush">
-        {% for nome, tot in per_prestazione.items() %}
-          <li class="list-group-item d-flex justify-content-between border-0 border-top">
-            <span>{{ nome }}</span><span class="fw-semibold">{{ '%.2f'|format(tot.lordo) }} €</span>
-          </li>
-        {% else %}
-          <li class="list-group-item text-muted border-0">Nessun dato</li>
-        {% endfor %}
-      </ul>
+      <ul class="list-group list-group-flush" id="lista-per-prestazione"></ul>
     </div>
   </div>
   <div class="col-12 col-md-4 mb-4">
     <div class="card-table">
       <div class="page-eyebrow p-3 pb-0">Per paziente</div>
-      <ul class="list-group list-group-flush">
-        {% for nome, tot in per_paziente.items() %}
-          <li class="list-group-item d-flex justify-content-between border-0 border-top">
-            <span>{{ nome }}</span><span class="fw-semibold">{{ '%.2f'|format(tot.lordo) }} €</span>
-          </li>
-        {% else %}
-          <li class="list-group-item text-muted border-0">Nessun dato</li>
-        {% endfor %}
-      </ul>
+      <ul class="list-group list-group-flush" id="lista-per-paziente"></ul>
     </div>
   </div>
   <div class="col-12 col-md-4 mb-4">
     <div class="card-table">
       <div class="page-eyebrow p-3 pb-0">Per piattaforma</div>
-      <ul class="list-group list-group-flush">
-        {% for nome, tot in per_piattaforma.items() %}
-          <li class="list-group-item d-flex justify-content-between border-0 border-top">
-            <span>{{ nome }}</span><span class="fw-semibold">{{ '%.2f'|format(tot.lordo) }} €</span>
-          </li>
-        {% else %}
-          <li class="list-group-item text-muted border-0">Nessun dato</li>
-        {% endfor %}
-      </ul>
+      <ul class="list-group list-group-flush" id="lista-per-piattaforma"></ul>
     </div>
   </div>
 </div>
 
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+  <div class="page-eyebrow mb-0">Dettaglio movimenti</div>
+  <div class="text-muted small" id="conteggio-dettaglio">0 movimenti</div>
+</div>
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead>
+      <tr>
+        <th>Data</th><th>Paziente</th><th>Piattaforma</th><th>Prestazione</th>
+        <th>Lordo</th><th>Costo</th><th>Netto</th><th>Stato</th><th>Metodo</th><th>Note</th>
+      </tr>
+    </thead>
+    <tbody id="tabella-dettaglio-body"></tbody>
+  </table>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-  const mesi = {{ monthly.keys() | list | tojson }};
-  const lordoDovuto = {{ monthly.values() | map(attribute='lordo_dovuto') | list | tojson }};
-  const lordoIncassato = {{ monthly.values() | map(attribute='lordo_incassato') | list | tojson }};
+(function () {
+  var movimenti = {{ movimenti_json | tojson }};
+  var MESI_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  new Chart(document.getElementById('graficoMensile'), {
-    type: 'bar',
-    data: {
-      labels: mesi,
-      datasets: [
-        { label: 'Lordo dovuto', data: lordoDovuto, backgroundColor: '#0d6efd66' },
-        { label: 'Lordo incassato', data: lordoIncassato, backgroundColor: '#198754' },
-      ],
-    },
-    options: { responsive: true, scales: { y: { beginAtZero: true } } },
+  var filtroPaziente = document.getElementById('filtro-paziente');
+  var filtroPiattaforma = document.getElementById('filtro-piattaforma');
+  var filtroTipo = document.getElementById('filtro-tipo');
+  var filtroStato = document.getElementById('filtro-stato');
+
+  function formatEuro(n) {
+    return n.toFixed(2) + ' €';
+  }
+
+  function formatData(iso) {
+    if (!iso) return '–';
+    var parti = iso.split('-');
+    var mese = MESI_ABBR[parseInt(parti[1], 10) - 1];
+    return parti[2] + ' ' + mese + ' ' + parti[0];
+  }
+
+  function getFiltered() {
+    var pz = filtroPaziente.value, pf = filtroPiattaforma.value, tp = filtroTipo.value, st = filtroStato.value;
+    return movimenti.filter(function (m) {
+      return (!pz || m.paziente === pz)
+        && (!pf || m.piattaforma === pf)
+        && (!tp || m.tipo_prestazione === tp)
+        && (!st || m.stato_pagamento === st);
+    });
+  }
+
+  function computeAggregates(filtered) {
+    var totali = { lordo: 0, netto: 0, lordo_incassato: 0, netto_incassato: 0 };
+    var byTipo = {}, byPaziente = {}, byPiattaforma = {}, byMese = {};
+
+    function accumula(map, chiave, m) {
+      if (!chiave) chiave = '(non specificato)';
+      var t = map[chiave] || (map[chiave] = { lordo: 0, netto: 0 });
+      t.lordo += m.lordo;
+      t.netto += m.netto;
+    }
+
+    filtered.forEach(function (m) {
+      totali.lordo += m.lordo;
+      totali.netto += m.netto;
+      var incassato = m.stato_pagamento === 'Incassato';
+      if (incassato) {
+        totali.lordo_incassato += m.lordo;
+        totali.netto_incassato += m.netto;
+      }
+      accumula(byTipo, m.tipo_prestazione, m);
+      accumula(byPaziente, m.paziente, m);
+      accumula(byPiattaforma, m.piattaforma, m);
+
+      if (m.data) {
+        var chiave = m.data.slice(0, 7);
+        var t = byMese[chiave] || (byMese[chiave] = { lordo_dovuto: 0, lordo_incassato: 0 });
+        t.lordo_dovuto += m.lordo;
+        if (incassato) t.lordo_incassato += m.lordo;
+      }
+    });
+
+    return { totali: totali, byTipo: byTipo, byPaziente: byPaziente, byPiattaforma: byPiattaforma, byMese: byMese };
+  }
+
+  function ordinaPerLordoDesc(map) {
+    return Object.keys(map).sort(function (a, b) { return map[b].lordo - map[a].lordo; });
+  }
+
+  function renderBreakdown(elenco, map) {
+    elenco.textContent = '';
+    var chiavi = ordinaPerLordoDesc(map);
+    if (chiavi.length === 0) {
+      var vuoto = document.createElement('li');
+      vuoto.className = 'list-group-item text-muted border-0';
+      vuoto.textContent = 'Nessun dato';
+      elenco.appendChild(vuoto);
+      return;
+    }
+    chiavi.forEach(function (chiave) {
+      var li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between border-0 border-top';
+      var nome = document.createElement('span');
+      nome.textContent = chiave;
+      var valore = document.createElement('span');
+      valore.className = 'fw-semibold';
+      valore.textContent = formatEuro(map[chiave].lordo);
+      li.appendChild(nome);
+      li.appendChild(valore);
+      elenco.appendChild(li);
+    });
+  }
+
+  function celle(valori) {
+    return valori.map(function (v) {
+      var td = document.createElement('td');
+      td.textContent = v;
+      return td;
+    });
+  }
+
+  function renderTabella(filtered) {
+    var corpo = document.getElementById('tabella-dettaglio-body');
+    corpo.textContent = '';
+    if (filtered.length === 0) {
+      var riga = document.createElement('tr');
+      var td = document.createElement('td');
+      td.colSpan = 10;
+      td.className = 'text-muted text-center py-4';
+      td.textContent = 'Nessun movimento per i filtri selezionati.';
+      riga.appendChild(td);
+      corpo.appendChild(riga);
+    } else {
+      filtered.forEach(function (m) {
+        var tr = document.createElement('tr');
+        celle([
+          formatData(m.data),
+          m.paziente,
+          m.piattaforma,
+          m.tipo_prestazione,
+          m.lordo ? formatEuro(m.lordo) : '–',
+          m.costo ? formatEuro(m.costo) : '–',
+          m.netto ? formatEuro(m.netto) : '–',
+          m.stato_pagamento,
+          m.metodo_pagamento || '–',
+          m.note || '–',
+        ]).forEach(function (td) { tr.appendChild(td); });
+        corpo.appendChild(tr);
+      });
+    }
+    document.getElementById('conteggio-dettaglio').textContent = filtered.length + ' movimenti';
+  }
+
+  var chart = null;
+  function renderChart(byMese) {
+    var mesi = Object.keys(byMese).sort();
+    var lordoDovuto = mesi.map(function (m) { return byMese[m].lordo_dovuto; });
+    var lordoIncassato = mesi.map(function (m) { return byMese[m].lordo_incassato; });
+    if (!chart) {
+      chart = new Chart(document.getElementById('graficoMensile'), {
+        type: 'bar',
+        data: {
+          labels: mesi,
+          datasets: [
+            { label: 'Lordo dovuto', data: lordoDovuto, backgroundColor: '#0d6efd66' },
+            { label: 'Lordo incassato', data: lordoIncassato, backgroundColor: '#198754' },
+          ],
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } },
+      });
+    } else {
+      chart.data.labels = mesi;
+      chart.data.datasets[0].data = lordoDovuto;
+      chart.data.datasets[1].data = lordoIncassato;
+      chart.update();
+    }
+  }
+
+  function applicaFiltri() {
+    var filtered = getFiltered();
+    var agg = computeAggregates(filtered);
+
+    document.getElementById('stat-lordo-totale').textContent = formatEuro(agg.totali.lordo);
+    document.getElementById('stat-netto-totale').textContent = formatEuro(agg.totali.netto);
+    document.getElementById('stat-lordo-incassato').textContent = formatEuro(agg.totali.lordo_incassato);
+    document.getElementById('stat-netto-incassato').textContent = formatEuro(agg.totali.netto_incassato);
+
+    renderBreakdown(document.getElementById('lista-per-prestazione'), agg.byTipo);
+    renderBreakdown(document.getElementById('lista-per-paziente'), agg.byPaziente);
+    renderBreakdown(document.getElementById('lista-per-piattaforma'), agg.byPiattaforma);
+    renderChart(agg.byMese);
+    renderTabella(filtered);
+  }
+
+  [filtroPaziente, filtroPiattaforma, filtroTipo, filtroStato].forEach(function (el) {
+    el.addEventListener('change', applicaFiltri);
   });
+
+  applicaFiltri();
+})();
 </script>
 {% endblock %}

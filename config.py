@@ -39,6 +39,16 @@ CALENDAR_IGNORE_KEYWORDS = [
     if kw.strip()
 ]
 
+# Flusso di cassa: percentuale del netto operativo accantonata come riserva
+# prudenziale (tasse + imprevisti) e aliquota indicativa del regime
+# forfettario, mostrata come riferimento informativo nel pannello accantonamenti.
+ALIQUOTA_ACCANTONAMENTO = 0.25
+ALIQUOTA_FORFETTARIO = 0.15
+
+# Un movimento "da incassare" con data più vecchia di questa soglia viene
+# segnalato come "scaduto" nel flusso di cassa.
+GIORNI_SCADUTO = 30
+
 GOOGLE_API_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/calendar.readonly",
@@ -84,7 +94,7 @@ SHEET_STRUCTURE = {
     TAB_TIPI_PRESTAZIONE: ["Nome"],
     TAB_VOCI_COSTO: ["Nome"],
     TAB_ANAGRAFICA_RICAVI: ["Piattaforma", "Tipo prestazione", "Prezzo lordo"],
-    TAB_COSTI_FISSI: ["Nome", "Importo mensile", "Data inizio", "Data fine"],
+    TAB_COSTI_FISSI: ["Nome", "Piattaforma", "Tipo prestazione", "Importo mensile", "Data inizio", "Data fine"],
     TAB_ANAGRAFICA_COSTI: [
         "Piattaforma",
         "Tipo prestazione",

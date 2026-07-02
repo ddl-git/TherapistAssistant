@@ -67,6 +67,16 @@ body {
   color: #212529;
 }
 
+.stat-card--dark {
+  background: #212529;
+  border-color: #212529;
+}
+
+.stat-card--dark .stat-card-label,
+.stat-card--dark .stat-card-value {
+  color: #fff;
+}
+
 /* --- Badge di stato --- */
 .status-badge {
   display: inline-flex;

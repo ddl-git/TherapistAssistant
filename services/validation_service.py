@@ -13,6 +13,18 @@ def _to_float(value) -> float:
     return float(str(value).replace(",", "."))
 
 
+def corrisponde(valore_scope, target: str) -> bool:
+    """Vero se una riga con questo valore di scope (Piattaforma o Tipo
+    prestazione) si applica a `target`: vuoto/'Tutte' si applica a tutti,
+    altrimenti serve corrispondenza esatta (case-insensitive). Stessa regola
+    usata sia per le voci di costo variabili (Anagrafica_Costi) sia per i
+    costi fissi (Costi_Fissi), così uno "Studio" scritto in un posto si
+    comporta allo stesso modo ovunque.
+    """
+    valore_scope = str(valore_scope).strip().lower()
+    return valore_scope in ("", "tutte") or valore_scope == target.strip().lower()
+
+
 def get_costi_applicabili(piattaforma: str, tipo_prestazione: str) -> list[dict]:
     """Righe di Anagrafica_Costi che si applicano a questa piattaforma/tipo
     prestazione. Ogni riga rappresenta una voce di costo separata (fee
@@ -20,16 +32,11 @@ def get_costi_applicabili(piattaforma: str, tipo_prestazione: str) -> list[dict]
     applica se Piattaforma e/o Tipo prestazione sono vuoti/'Tutte' oppure
     corrispondono esattamente.
     """
-
-    def matches(value, target) -> bool:
-        value = str(value).strip().lower()
-        return value in ("", "tutte") or value == target.strip().lower()
-
     return [
         r
         for r in anagrafica_service.list_costi()
-        if matches(r.get("Piattaforma", ""), piattaforma)
-        and matches(r.get("Tipo prestazione", ""), tipo_prestazione)
+        if corrisponde(r.get("Piattaforma", ""), piattaforma)
+        and corrisponde(r.get("Tipo prestazione", ""), tipo_prestazione)
     ]
 
 

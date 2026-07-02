@@ -4,7 +4,6 @@ import config
 from google_clients import sheets_client
 from services import anagrafica_service, validation_service
 
-INCASSATO = "Incassato"
 DA_INCASSARE = "Da incassare"
 
 
@@ -37,6 +36,12 @@ def list_movimenti(date_from: date = None, date_to: date = None) -> list[dict]:
     dei valori scritti nel foglio al momento della validazione. Così il netto
     mostrato è sempre coerente con il tariffario in vigore quando si apre la
     pagina, anche se nel frattempo è cambiato.
+
+    Nota: il Netto qui è il margine di contribuzione (lordo - costi variabili
+    per seduta), non include i costi fissi — quelli si vedono solo nel Flusso
+    di cassa, come spesa di periodo, non spalmati sulla singola seduta (vedi
+    discussione: spalmarli qui renderebbe il Netto instabile, perché
+    cambierebbe ogni volta che si aggiunge una seduta nello stesso mese).
     """
     rows = sheets_client.get_records_with_rows(config.TAB_MOVIMENTI)
     result = []
@@ -76,68 +81,50 @@ def update_pagamento(row: int, stato_pagamento: str, metodo_pagamento: str) -> N
     sheets_client.update_cell_by_header(config.TAB_MOVIMENTI, row, "Metodo pagamento", metodo_pagamento)
 
 
-def monthly_totals(movimenti: list[dict]) -> dict:
-    """Totali per mese (YYYY-MM): dovuto vs incassato, lordo e netto."""
-    totals = {}
-    for m in movimenti:
-        if not m["data"]:
-            continue
-        key = m["data"].strftime("%Y-%m")
-        t = totals.setdefault(
-            key,
-            {"lordo_dovuto": 0.0, "lordo_incassato": 0.0, "netto_dovuto": 0.0, "netto_incassato": 0.0},
-        )
-        t["lordo_dovuto"] += m["lordo"]
-        t["netto_dovuto"] += m["netto"]
-        if m["stato_pagamento"].strip().lower() == INCASSATO.lower():
-            t["lordo_incassato"] += m["lordo"]
-            t["netto_incassato"] += m["netto"]
-    return dict(sorted(totals.items()))
+def _importo_costo_fisso_nel_periodo(riga: dict, date_from: date, date_to: date) -> dict | None:
+    """Ripartisce a giorni UNA riga di costo fisso sul periodo [date_from, date_to].
+
+    Converte l'importo mensile in un tasso giornaliero (importo_mensile * 12 /
+    365.25) e lo moltiplica per i giorni di sovrapposizione tra la durata del
+    costo (data inizio / data fine) e il periodo richiesto. Un costo senza
+    data fine è considerato ancora attivo oggi. None se non si applica al periodo.
+    """
+    inizio = _parse_date(riga.get("Data inizio"))
+    if not inizio:
+        return None
+    fine = _parse_date(riga.get("Data fine"))
+
+    overlap_da = max(inizio, date_from)
+    overlap_a = min(fine, date_to) if fine else date_to
+    giorni = (overlap_a - overlap_da).days + 1
+    if giorni <= 0:
+        return None
+
+    importo_mensile = _parse_float(riga.get("Importo mensile"))
+    tasso_giornaliero = importo_mensile * 12 / 365.25
+    return {"giorni": giorni, "importo_periodo": round(tasso_giornaliero * giorni, 2)}
 
 
 def costi_fissi_nel_periodo(date_from: date, date_to: date) -> list[dict]:
-    """Ripartisce a giorni i costi fissi attivi nel periodo [date_from, date_to].
-
-    Ogni costo fisso ha un importo mensile; lo converto in un tasso giornaliero
-    (importo_mensile * 12 / 365.25) e lo moltiplico per i giorni di
-    sovrapposizione tra la sua durata (data inizio / data fine) e il periodo
-    richiesto. Un costo senza data fine è considerato ancora attivo oggi.
+    """Elenca tutti i costi fissi attivi nel periodo [date_from, date_to] con
+    il relativo importo prorata a giorni (vedi `_importo_costo_fisso_nel_periodo`),
+    indipendentemente dal loro scope Piattaforma/Tipo prestazione: usato per il
+    totale di cassa reale nel Flusso di cassa, che deve contare ogni costo per
+    intero sul periodo.
     """
     risultato = []
     for r in anagrafica_service.list_costi_fissi():
-        inizio = _parse_date(r.get("Data inizio"))
-        if not inizio:
+        dettaglio = _importo_costo_fisso_nel_periodo(r, date_from, date_to)
+        if not dettaglio:
             continue
-        fine = _parse_date(r.get("Data fine"))
-
-        overlap_da = max(inizio, date_from)
-        overlap_a = min(fine, date_to) if fine else date_to
-        giorni = (overlap_a - overlap_da).days + 1
-        if giorni <= 0:
-            continue
-
-        importo_mensile = _parse_float(r.get("Importo mensile"))
-        tasso_giornaliero = importo_mensile * 12 / 365.25
-        importo_periodo = round(tasso_giornaliero * giorni, 2)
-
         risultato.append(
             {
                 "nome": r.get("Nome", ""),
-                "importo_mensile": importo_mensile,
-                "giorni": giorni,
-                "importo_periodo": importo_periodo,
+                "piattaforma": r.get("Piattaforma", ""),
+                "tipo_prestazione": r.get("Tipo prestazione", ""),
+                "importo_mensile": _parse_float(r.get("Importo mensile")),
+                "giorni": dettaglio["giorni"],
+                "importo_periodo": dettaglio["importo_periodo"],
             }
         )
     return risultato
-
-
-def breakdown_by(movimenti: list[dict], field: str) -> dict:
-    """Totali lordo/netto raggruppati per un campo (tipo_prestazione, paziente, piattaforma)."""
-    totals = {}
-    for m in movimenti:
-        key = m.get(field) or "(non specificato)"
-        t = totals.setdefault(key, {"lordo": 0.0, "netto": 0.0, "conteggio": 0})
-        t["lordo"] += m["lordo"]
-        t["netto"] += m["netto"]
-        t["conteggio"] += 1
-    return dict(sorted(totals.items(), key=lambda kv: -kv[1]["lordo"]))

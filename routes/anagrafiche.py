@@ -166,16 +166,23 @@ def elimina_costo(row):
 @bp.route("/costi-fissi", methods=["GET", "POST"])
 @login_required
 def costi_fissi():
+    anagrafica_service.seed_piattaforme_e_tipi_da_tariffario()
     if request.method == "POST":
         nome = request.form.get("nome", "").strip()
+        piattaforma = request.form.get("piattaforma", "").strip()
+        tipo_prestazione = request.form.get("tipo_prestazione", "").strip()
         importo_mensile = request.form.get("importo_mensile", "0").replace(",", ".")
         data_inizio = request.form.get("data_inizio", "")
         data_fine = request.form.get("data_fine", "")
         row = request.form.get("row")
         if row:
-            anagrafica_service.update_costo_fisso(int(row), nome, importo_mensile, data_inizio, data_fine)
+            anagrafica_service.update_costo_fisso(
+                int(row), nome, piattaforma, tipo_prestazione, importo_mensile, data_inizio, data_fine
+            )
         else:
-            anagrafica_service.add_costo_fisso(nome, importo_mensile, data_inizio, data_fine)
+            anagrafica_service.add_costo_fisso(
+                nome, piattaforma, tipo_prestazione, importo_mensile, data_inizio, data_fine
+            )
         return redirect(url_for("anagrafiche.costi_fissi"))
 
     righe = anagrafica_service.list_costi_fissi()
@@ -184,7 +191,12 @@ def costi_fissi():
     editing = next((r for r in righe if r["_row"] == edit_row), None) if edit_row else None
     duplicando = next((r for r in righe if r["_row"] == duplica_row), None) if duplica_row else None
     return render_template(
-        "anagrafiche/costi_fissi.html", righe=righe, editing=editing, duplicando=duplicando
+        "anagrafiche/costi_fissi.html",
+        righe=righe,
+        editing=editing,
+        duplicando=duplicando,
+        piattaforme=anagrafica_service.list_piattaforme(),
+        tipi_prestazione=anagrafica_service.list_tipi_prestazione(),
     )
 
 

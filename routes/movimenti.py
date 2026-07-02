@@ -1,9 +1,22 @@
+from urllib.parse import urlparse
+
 from flask import Blueprint, redirect, render_template, request, url_for
 
 from auth import login_required
 from services import anagrafica_service, report_service, validation_service
 
 bp = Blueprint("movimenti", __name__)
+
+
+def _next_sicuro(url_arg):
+    """Redirect verso `next` solo se è un percorso locale (niente
+    scheme/netloc): evita open redirect se il valore viene manomesso."""
+    if not url_arg:
+        return None
+    parsed = urlparse(url_arg)
+    if parsed.scheme or parsed.netloc or not parsed.path.startswith("/"):
+        return None
+    return url_arg
 
 
 @bp.route("/movimenti")
@@ -47,7 +60,8 @@ def aggiorna_pagamento(row):
     stato = request.form.get("stato_pagamento", "Da incassare")
     metodo = request.form.get("metodo_pagamento", "").strip()
     report_service.update_pagamento(row, stato, metodo)
-    return redirect(url_for("movimenti.list_movimenti"))
+    next_url = _next_sicuro(request.form.get("next"))
+    return redirect(next_url or url_for("movimenti.list_movimenti"))
 
 
 @bp.route("/movimenti/<int:row>/modifica", methods=["GET", "POST"])
