@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Tariffario ricavi{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="text-muted small text-decoration-none" href="{{ url_for('anagrafiche.index') }}"><i class="bi bi-arrow-left"></i> Anagrafiche</a>
+  <div class="page-eyebrow mt-2">Anagrafica</div>
+  <h1 class="h3 mb-1">Tariffario ricavi</h1>
+  <p class="text-muted mb-0 small">Per ogni combinazione piattaforma + tipo prestazione, il prezzo lordo di default (modificabile al momento della validazione).</p>
+</div>
+
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Piattaforma</th><th>Tipo prestazione</th><th>Prezzo lordo</th><th></th></tr></thead>
+    <tbody>
+      {% for r in righe %}
+        <tr>
+          <td><span class="badge text-bg-light border">{{ r['Piattaforma'] }}</span></td>
+          <td>{{ r['Tipo prestazione'] }}</td>
+          <td>{{ r['Prezzo lordo'] }} €</td>
+          <td class="text-end text-nowrap">
+            <a class="icon-btn" title="Modifica" href="{{ url_for('anagrafiche.ricavi', edit=r['_row']) }}"><i class="bi bi-pencil"></i></a>
+            <form method="post" class="d-inline" action="{{ url_for('anagrafiche.elimina_ricavo', row=r['_row']) }}"
+                  onsubmit="return confirm('Eliminare questa riga?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn icon-btn--danger" title="Elimina"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted text-center py-4">Nessuna riga ancora.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card-table p-4">
+<h2 class="h6 mb-3 text-uppercase text-muted">{{ 'Modifica riga' if editing else 'Aggiungi riga' }}</h2>
+<form method="post" class="row g-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if editing %}<input type="hidden" name="row" value="{{ editing['_row'] }}">{% endif %}
+  <div class="col-12 col-sm-4">
+    <label class="form-label">Piattaforma</label>
+    <select class="form-select" name="piattaforma" required>
+      <option value="" disabled {{ '' if editing else 'selected' }}>Seleziona...</option>
+      {% for p in piattaforme %}
+        <option value="{{ p['Nome'] }}" {{ 'selected' if editing and editing['Piattaforma'] == p['Nome'] else '' }}>{{ p['Nome'] }}</option>
+      {% endfor %}
+    </select>
+    {% if not piattaforme %}
+      <div class="form-text text-danger">Nessuna piattaforma: aggiungine una in <a href="{{ url_for('anagrafiche.piattaforme') }}">Piattaforme</a>.</div>
+    {% endif %}
+  </div>
+  <div class="col-12 col-sm-4">
+    <label class="form-label">Tipo prestazione</label>
+    <select class="form-select" name="tipo_prestazione" required>
+      <option value="" disabled {{ '' if editing else 'selected' }}>Seleziona...</option>
+      {% for t in tipi_prestazione %}
+        <option value="{{ t['Nome'] }}" {{ 'selected' if editing and editing['Tipo prestazione'] == t['Nome'] else '' }}>{{ t['Nome'] }}</option>
+      {% endfor %}
+    </select>
+    {% if not tipi_prestazione %}
+      <div class="form-text text-danger">Nessun tipo prestazione: aggiungine uno in <a href="{{ url_for('anagrafiche.tipi_prestazione') }}">Tipi prestazione</a>.</div>
+    {% endif %}
+  </div>
+  <div class="col-12 col-sm-4">
+    <label class="form-label">Prezzo lordo (€)</label>
+    <input type="text" inputmode="decimal" class="form-control" name="prezzo_lordo" value="{{ editing['Prezzo lordo'] if editing else '' }}" required>
+  </div>
+  <div class="col-12">
+    <button type="submit" class="btn btn-primary">{{ 'Salva modifiche' if editing else 'Aggiungi' }}</button>
+    {% if editing %}<a class="btn btn-link" href="{{ url_for('anagrafiche.ricavi') }}">Annulla</a>{% endif %}
+  </div>
+</form>
+</div>
+{% endblock %}

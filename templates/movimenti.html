@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Movimenti{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+  <div>
+    <div class="page-eyebrow">Contabilità</div>
+    <h1 class="h3 mb-0">Movimenti</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="input-group">
+      <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control" id="cerca-paziente" placeholder="Cerca paziente">
+    </div>
+    <a class="btn btn-primary text-nowrap" href="{{ url_for('queue.list_queue') }}">
+      <i class="bi bi-plus-lg"></i> Nuovo movimento
+    </a>
+  </div>
+</div>
+
+<div class="info-banner mb-4">
+  <i class="bi bi-info-circle me-1"></i>
+  Le colonne delle voci di costo sono ricalcolate dal tariffario attuale: su un movimento validato con un
+  tariffario diverso da quello di oggi possono non corrispondere al netto già salvato — in quel caso usa
+  <strong>Modifica</strong> per riallinearlo.
+</div>
+
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Netto totale</div>
+      <div class="stat-card-value">{{ '%.2f'|format(riepilogo.netto_totale) }} €</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Incassato</div>
+      <div class="stat-card-value text-success">{{ '%.2f'|format(riepilogo.incassato) }} €</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Da incassare</div>
+      <div class="stat-card-value" style="color:#b06d00;">{{ '%.2f'|format(riepilogo.da_incassare) }} €</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Trattenute</div>
+      <div class="stat-card-value text-muted">{{ '%.2f'|format(riepilogo.trattenute) }} €</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div class="filter-pills">
+    <button type="button" class="filter-pill active" data-stato="tutti">Tutti {{ riepilogo.conteggio_tutti }}</button>
+    <button type="button" class="filter-pill" data-stato="da incassare">Da incassare {{ riepilogo.conteggio_da_incassare }}</button>
+    <button type="button" class="filter-pill" data-stato="incassato">Incassato {{ riepilogo.conteggio_incassati }}</button>
+  </div>
+  <div class="text-muted small" id="conteggio-visibili">{{ riepilogo.conteggio_tutti }} movimenti</div>
+</div>
+
+<div class="card-table table-responsive">
+  <table class="table table-sm align-middle mb-0" id="tabella-movimenti">
+    <thead>
+      <tr>
+        <th>Data</th><th>Paziente</th><th>Piattaforma</th><th>Prestazione</th>
+        <th>Lordo</th>
+        {% for voce in voci_colonne %}<th>{{ voce }}</th>{% endfor %}
+        <th>Netto</th><th>Stato</th><th>Registra pagamento</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in movimenti %}
+        <tr data-paziente="{{ m.paziente|lower }}" data-stato="{{ m.stato_pagamento|lower }}">
+          <td>{{ m.data.strftime('%d %b %Y') if m.data else '–' }}</td>
+          <td>{{ m.paziente }}</td>
+          <td><span class="badge text-bg-light border">{{ m.piattaforma }}</span></td>
+          <td>{{ m.tipo_prestazione }}</td>
+          <td>{{ '%.2f'|format(m.lordo) + ' €' if m.lordo else '–' }}</td>
+          {% for voce in voci_colonne %}
+            <td>{{ '%.2f'|format(m.costi_breakdown.get(voce, 0)) + ' €' if m.costi_breakdown.get(voce, 0) else '–' }}</td>
+          {% endfor %}
+          <td class="fw-semibold">{{ '%.2f'|format(m.netto) + ' €' if m.netto else '–' }}</td>
+          <td>
+            {% if m.stato_pagamento == 'Incassato' %}
+              <span class="status-badge status-badge--incassato"><span class="status-dot"></span>Incassato</span>
+            {% else %}
+              <span class="status-badge status-badge--da-incassare"><span class="status-dot"></span>Da incassare</span>
+            {% endif %}
+          </td>
+          <td style="min-width: 16rem;">
+            <form method="post" action="{{ url_for('movimenti.aggiorna_pagamento', row=m._row) }}"
+                  class="d-flex gap-1 flex-nowrap">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select class="form-select form-select-sm" name="stato_pagamento" style="max-width: 8.5rem;">
+                <option value="Da incassare" {{ 'selected' if m.stato_pagamento == 'Da incassare' else '' }}>Da incassare</option>
+                <option value="Incassato" {{ 'selected' if m.stato_pagamento == 'Incassato' else '' }}>Incassato</option>
+              </select>
+              <input type="text" class="form-control form-control-sm" name="metodo_pagamento"
+                     placeholder="Metodo" value="{{ m.metodo_pagamento }}" style="max-width: 6.5rem;">
+              <button type="submit" class="btn btn-sm btn-primary text-nowrap">Salva</button>
+            </form>
+          </td>
+          <td class="text-nowrap">
+            <a class="icon-btn" title="Modifica" href="{{ url_for('movimenti.modifica_movimento', row=m._row) }}"><i class="bi bi-pencil"></i></a>
+            <form method="post" class="d-inline" action="{{ url_for('movimenti.elimina_movimento', row=m._row) }}"
+                  onsubmit="return confirm('Annullare definitivamente questo movimento? Non modifica la coda di validazione.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn icon-btn--danger" title="Annulla"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="{{ 9 + voci_colonne|length }}" class="text-muted text-center py-4">Nessun movimento ancora registrato.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+(function () {
+  var searchInput = document.getElementById('cerca-paziente');
+  var pills = document.querySelectorAll('.filter-pill');
+  var rows = document.querySelectorAll('#tabella-movimenti tbody tr[data-stato]');
+  var conteggio = document.getElementById('conteggio-visibili');
+  var statoAttivo = 'tutti';
+
+  function applica() {
+    var query = (searchInput.value || '').toLowerCase();
+    var visibili = 0;
+    rows.forEach(function (row) {
+      var matchTesto = row.dataset.paziente.includes(query);
+      var matchStato = statoAttivo === 'tutti' || row.dataset.stato === statoAttivo;
+      var visibile = matchTesto && matchStato;
+      row.style.display = visibile ? '' : 'none';
+      if (visibile) visibili++;
+    });
+    conteggio.textContent = visibili + ' movimenti';
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', applica);
+  }
+  pills.forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      pills.forEach(function (p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      statoAttivo = pill.dataset.stato;
+      applica();
+    });
+  });
+})();
+</script>
+{% endblock %}

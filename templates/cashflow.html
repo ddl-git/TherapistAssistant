@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Flusso di cassa{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="page-eyebrow">Contabilità</div>
+  <h1 class="h3 mb-0">Flusso di cassa</h1>
+</div>
+
+<form method="get" class="card-table p-3 mb-4 row g-2 align-items-end">
+  <div class="col-auto">
+    <label class="form-label small mb-1">Dal</label>
+    <input type="date" class="form-control" name="da" value="{{ date_from }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1">Al</label>
+    <input type="date" class="form-control" name="a" value="{{ date_to }}">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Filtra</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('cashflow.index') }}">Mese in corso</a>
+  </div>
+</form>
+
+<div class="row g-4">
+  <div class="col-12 col-lg-7">
+    <div class="card-table p-4">
+      <div class="page-eyebrow mb-3">Conto economico del periodo (solo incassato)</div>
+
+      <div class="py-2 border-bottom">
+        <div class="d-flex justify-content-between align-items-center">
+          <button class="btn btn-link p-0 text-decoration-none text-reset" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#dettaglio-ricavi">
+            <i class="bi bi-chevron-right small"></i> Ricavi incassati (lordo)
+          </button>
+          <span class="fw-semibold">{{ '%.2f'|format(lordo_incassato) }} €</span>
+        </div>
+        <div class="collapse mt-2" id="dettaglio-ricavi">
+          <ul class="list-group list-group-flush">
+            {% for m in incassati %}
+              <li class="list-group-item d-flex justify-content-between border-0 py-1 ps-4 small">
+                <span class="text-muted">{{ m.data.strftime('%d %b') if m.data else '' }} — {{ m.paziente }} ({{ m.piattaforma }})</span>
+                <span>{{ '%.2f'|format(m.lordo) }} €</span>
+              </li>
+            {% else %}
+              <li class="list-group-item text-muted border-0 py-1 ps-4 small">Nessun ricavo incassato nel periodo selezionato.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="py-2 border-bottom text-muted">
+        <div class="d-flex justify-content-between align-items-center">
+          <button class="btn btn-link p-0 text-decoration-none text-reset" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#dettaglio-trattenute">
+            <i class="bi bi-chevron-right small"></i> – Trattenute (fee piattaforma, tasse, Enpap...)
+          </button>
+          <span>– {{ '%.2f'|format(trattenute_incassate) }} €</span>
+        </div>
+        <div class="collapse mt-2" id="dettaglio-trattenute">
+          <ul class="list-group list-group-flush">
+            {% for voce, importo in trattenute_breakdown.items() %}
+              <li class="list-group-item d-flex justify-content-between border-0 py-1 ps-4 small">
+                <span>{{ voce }}</span>
+                <span>{{ '%.2f'|format(importo) }} €</span>
+              </li>
+            {% else %}
+              <li class="list-group-item text-muted border-0 py-1 ps-4 small">Nessuna trattenuta nel periodo selezionato.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between py-2 border-bottom">
+        <span>= Netto incassato</span>
+        <span class="fw-semibold">{{ '%.2f'|format(netto_incassato) }} €</span>
+      </div>
+
+      <div class="py-2 border-bottom text-muted">
+        <div class="d-flex justify-content-between align-items-center">
+          <button class="btn btn-link p-0 text-decoration-none text-reset" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#dettaglio-costi-fissi-inline">
+            <i class="bi bi-chevron-right small"></i> – Costi fissi del periodo (affitto, abbonamenti...)
+          </button>
+          <span>– {{ '%.2f'|format(totale_costi_fissi) }} €</span>
+        </div>
+        <div class="collapse mt-2" id="dettaglio-costi-fissi-inline">
+          <ul class="list-group list-group-flush">
+            {% for c in costi_fissi %}
+              <li class="list-group-item d-flex justify-content-between border-0 py-1 ps-4 small">
+                <span>{{ c.nome }} <span class="text-muted">({{ c.giorni }} giorni · {{ c.importo_mensile }} €/mese)</span></span>
+                <span>{{ '%.2f'|format(c.importo_periodo) }} €</span>
+              </li>
+            {% else %}
+              <li class="list-group-item text-muted border-0 py-1 ps-4 small">Nessun costo fisso nel periodo selezionato.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center pt-3">
+        <span class="fs-5 fw-semibold">Cassa disponibile</span>
+        <span class="fs-3 fw-bold {{ 'text-success' if cassa_disponibile >= 0 else 'text-danger' }}">
+          {{ '%.2f'|format(cassa_disponibile) }} €
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-5">
+    <div class="info-banner mb-3">
+      <i class="bi bi-hourglass-split me-1"></i>
+      <strong>Da incassare nel periodo</strong> ({{ numero_da_incassare }} movimenti, non ancora in cassa):
+      lordo {{ '%.2f'|format(lordo_da_incassare) }} € — netto {{ '%.2f'|format(netto_da_incassare) }} €
+    </div>
+
+    <div class="card-table">
+      <div class="page-eyebrow p-3 pb-0">Dettaglio costi fissi nel periodo</div>
+      <ul class="list-group list-group-flush">
+        {% for c in costi_fissi %}
+          <li class="list-group-item d-flex justify-content-between align-items-center border-0 border-top">
+            <span>
+              {{ c.nome }}
+              <span class="text-muted small d-block">{{ c.giorni }} giorni · {{ c.importo_mensile }} €/mese</span>
+            </span>
+            <span class="fw-semibold">{{ '%.2f'|format(c.importo_periodo) }} €</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted border-0">
+            Nessun costo fisso configurato per questo periodo.
+            <a href="{{ url_for('anagrafiche.costi_fissi') }}">Aggiungine uno</a>.
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

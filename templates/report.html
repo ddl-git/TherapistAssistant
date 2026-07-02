@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Report{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <div class="page-eyebrow">Contabilità</div>
+    <h1 class="h3 mb-0">Report finanziario</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('report.export_csv', da=date_from, a=date_to) }}"><i class="bi bi-filetype-csv"></i> CSV</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('report.export_excel', da=date_from, a=date_to) }}"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+  </div>
+</div>
+
+<form method="get" class="card-table p-3 mb-4 row g-2 align-items-end">
+  <div class="col-auto">
+    <label class="form-label small mb-1">Dal</label>
+    <input type="date" class="form-control" name="da" value="{{ date_from }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1">Al</label>
+    <input type="date" class="form-control" name="a" value="{{ date_to }}">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Filtra</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('report.index') }}">Reset</a>
+  </div>
+</form>
+
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Lordo totale</div>
+      <div class="stat-card-value">{{ '%.2f'|format(totale_lordo) }} €</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Netto totale</div>
+      <div class="stat-card-value">{{ '%.2f'|format(totale_netto) }} €</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Lordo incassato</div>
+      <div class="stat-card-value text-success">{{ '%.2f'|format(totale_incassato_lordo) }} €</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="stat-card">
+      <div class="stat-card-label">Netto incassato</div>
+      <div class="stat-card-value text-success">{{ '%.2f'|format(totale_incassato_netto) }} €</div>
+    </div>
+  </div>
+</div>
+
+<div class="card-table p-3 mb-4">
+  <div class="page-eyebrow mb-2">Andamento mensile (lordo)</div>
+  <canvas id="graficoMensile" height="90"></canvas>
+</div>
+
+<div class="row">
+  <div class="col-12 col-md-4 mb-4">
+    <div class="card-table">
+      <div class="page-eyebrow p-3 pb-0">Per tipo prestazione</div>
+      <ul class="list-group list-group-flush">
+        {% for nome, tot in per_prestazione.items() %}
+          <li class="list-group-item d-flex justify-content-between border-0 border-top">
+            <span>{{ nome }}</span><span class="fw-semibold">{{ '%.2f'|format(tot.lordo) }} €</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted border-0">Nessun dato</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-12 col-md-4 mb-4">
+    <div class="card-table">
+      <div class="page-eyebrow p-3 pb-0">Per paziente</div>
+      <ul class="list-group list-group-flush">
+        {% for nome, tot in per_paziente.items() %}
+          <li class="list-group-item d-flex justify-content-between border-0 border-top">
+            <span>{{ nome }}</span><span class="fw-semibold">{{ '%.2f'|format(tot.lordo) }} €</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted border-0">Nessun dato</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="col-12 col-md-4 mb-4">
+    <div class="card-table">
+      <div class="page-eyebrow p-3 pb-0">Per piattaforma</div>
+      <ul class="list-group list-group-flush">
+        {% for nome, tot in per_piattaforma.items() %}
+          <li class="list-group-item d-flex justify-content-between border-0 border-top">
+            <span>{{ nome }}</span><span class="fw-semibold">{{ '%.2f'|format(tot.lordo) }} €</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted border-0">Nessun dato</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const mesi = {{ monthly.keys() | list | tojson }};
+  const lordoDovuto = {{ monthly.values() | map(attribute='lordo_dovuto') | list | tojson }};
+  const lordoIncassato = {{ monthly.values() | map(attribute='lordo_incassato') | list | tojson }};
+
+  new Chart(document.getElementById('graficoMensile'), {
+    type: 'bar',
+    data: {
+      labels: mesi,
+      datasets: [
+        { label: 'Lordo dovuto', data: lordoDovuto, backgroundColor: '#0d6efd66' },
+        { label: 'Lordo incassato', data: lordoIncassato, backgroundColor: '#198754' },
+      ],
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } },
+  });
+</script>
+{% endblock %}

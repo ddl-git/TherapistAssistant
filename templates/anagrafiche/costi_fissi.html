@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Costi fissi{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="text-muted small text-decoration-none" href="{{ url_for('anagrafiche.index') }}"><i class="bi bi-arrow-left"></i> Anagrafiche</a>
+  <div class="page-eyebrow mt-2">Anagrafica</div>
+  <h1 class="h3 mb-1">Costi fissi</h1>
+  <p class="text-muted mb-0 small">
+    Spese periodiche indipendenti dalle sedute (affitto ufficio, abbonamenti software, ecc.).
+  </p>
+</div>
+
+<div class="info-banner mb-4">
+  <i class="bi bi-info-circle me-1"></i>
+  Un costo ricorrente (es. l'affitto mensile) va inserito <strong>una sola volta</strong>, lasciando
+  <strong>"Data fine" vuota</strong>: l'app calcola da sola la quota di ogni mese nel Flusso di cassa,
+  senza bisogno di aggiungere una riga ogni mese. Usa "Data fine" solo se il costo è terminato
+  (es. abbonamento disdetto) o se ha un importo diverso da un certo periodo in poi — in quel caso
+  puoi <strong>duplicare</strong> la riga e cambiare solo importo/date sulla copia.
+</div>
+
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Nome</th><th>Importo mensile</th><th>Data inizio</th><th>Data fine</th><th></th></tr></thead>
+    <tbody>
+      {% for r in righe %}
+        <tr>
+          <td>{{ r['Nome'] }}</td>
+          <td>{{ r['Importo mensile'] }} €</td>
+          <td>{{ r['Data inizio'] }}</td>
+          <td>{{ r['Data fine'] or 'Ricorrente (nessuna scadenza)' }}</td>
+          <td class="text-end text-nowrap">
+            <a class="icon-btn" title="Duplica" href="{{ url_for('anagrafiche.costi_fissi', duplica=r['_row']) }}"><i class="bi bi-copy"></i></a>
+            <a class="icon-btn" title="Modifica" href="{{ url_for('anagrafiche.costi_fissi', edit=r['_row']) }}"><i class="bi bi-pencil"></i></a>
+            <form method="post" class="d-inline" action="{{ url_for('anagrafiche.elimina_costo_fisso', row=r['_row']) }}"
+                  onsubmit="return confirm('Eliminare questo costo fisso?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn icon-btn--danger" title="Elimina"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-muted text-center py-4">Nessun costo fisso ancora.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card-table p-4">
+  <h2 class="h6 mb-3 text-uppercase text-muted">
+    {{ 'Modifica costo fisso' if editing else ('Duplica costo fisso' if duplicando else 'Aggiungi costo fisso') }}
+  </h2>
+  <form method="post" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if editing %}<input type="hidden" name="row" value="{{ editing['_row'] }}">{% endif %}
+    {% set valori = editing or duplicando %}
+    <div class="col-12 col-sm-4">
+      <label class="form-label">Nome</label>
+      <input type="text" class="form-control" name="nome" placeholder="Es. Affitto ufficio"
+             value="{{ valori['Nome'] if valori else '' }}" required>
+    </div>
+    <div class="col-12 col-sm-2">
+      <label class="form-label">Importo mensile (€)</label>
+      <input type="text" inputmode="decimal" class="form-control" name="importo_mensile"
+             value="{{ valori['Importo mensile'] if valori else '' }}" required>
+    </div>
+    <div class="col-12 col-sm-3">
+      <label class="form-label">Data inizio</label>
+      <input type="date" class="form-control" name="data_inizio"
+             value="{{ valori['Data inizio'] if valori else '' }}" required>
+    </div>
+    <div class="col-12 col-sm-3">
+      <label class="form-label">Data fine</label>
+      <input type="date" class="form-control" name="data_fine" value="{{ editing['Data fine'] if editing else '' }}">
+      <div class="form-text">Vuota = ricorrente senza scadenza.</div>
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">{{ 'Salva modifiche' if editing else 'Aggiungi' }}</button>
+      {% if editing or duplicando %}<a class="btn btn-link" href="{{ url_for('anagrafiche.costi_fissi') }}">Annulla</a>{% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Valida appuntamento{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="page-eyebrow">Contabilità</div>
+  <h1 class="h3 mb-1">Valida appuntamento</h1>
+  <p class="text-muted mb-0">{{ title }} — {{ event_date }}</p>
+</div>
+
+<div class="card-table p-4">
+<form method="post" class="row g-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="event_date" value="{{ event_date }}">
+
+  <div class="col-12 col-sm-6">
+    <label class="form-label">Paziente</label>
+    <input type="text" class="form-control" name="paziente" list="lista-pazienti" value="{{ guessed_paziente }}" required>
+    <datalist id="lista-pazienti">
+      {% for p in pazienti %}
+        <option value="{{ p['Nome'] }}">
+      {% endfor %}
+    </datalist>
+    {% if paziente_esistente %}
+      <div class="form-text text-success">
+        Paziente già in anagrafica: <strong>{{ paziente_esistente['Nome'] }}</strong> — verifica che sia lui/lei.
+      </div>
+    {% else %}
+      <div class="form-text">Nome non trovato in anagrafica Pazienti.</div>
+      <div class="form-check mt-1">
+        <input class="form-check-input" type="checkbox" name="aggiungi_paziente" id="aggiungi_paziente" checked>
+        <label class="form-check-label small" for="aggiungi_paziente">
+          Aggiungi come nuovo paziente in anagrafica
+        </label>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="col-12 col-sm-6">
+    <label class="form-label">Piattaforma / Tipo prestazione</label>
+    <select class="form-select" id="combo" name="combo" required onchange="aggiornaPrezzo()">
+      <option value="" disabled {{ '' if matched_combo else 'selected' }}>Seleziona...</option>
+      {% for c in combos %}
+        <option value="{{ c.value }}" data-prezzo="{{ c.prezzo }}" {{ 'selected' if matched_combo and c.value == matched_combo.value else '' }}>{{ c.label }}</option>
+      {% endfor %}
+    </select>
+    {% if matched_combo %}
+      <div class="form-text">Proposta dal titolo dell'evento — verifica ed eventualmente cambia.</div>
+    {% endif %}
+    {% if not combos %}
+      <div class="form-text text-danger">
+        Nessuna riga in Anagrafica_Ricavi: aggiungine una nelle
+        <a href="{{ url_for('anagrafiche.ricavi') }}">Anagrafiche</a> prima di continuare.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="col-12 col-sm-4">
+    <label class="form-label">Prezzo lordo (€)</label>
+    <input type="text" inputmode="decimal" class="form-control" id="prezzo_lordo" name="prezzo_lordo"
+           value="{{ matched_combo.prezzo if matched_combo else '' }}" required>
+  </div>
+
+  <div class="col-12">
+    <label class="form-label">Note</label>
+    <textarea class="form-control" name="note" rows="2"></textarea>
+  </div>
+
+  <div class="col-12">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Conferma e scrivi su Movimenti</button>
+    <a class="btn btn-link" href="{{ url_for('queue.list_queue') }}">Annulla</a>
+  </div>
+</form>
+</div>
+
+<script>
+function aggiornaPrezzo() {
+  var select = document.getElementById('combo');
+  var opt = select.options[select.selectedIndex];
+  var prezzo = opt.getAttribute('data-prezzo');
+  if (prezzo) {
+    document.getElementById('prezzo_lordo').value = prezzo;
+  }
+}
+</script>
+{% endblock %}

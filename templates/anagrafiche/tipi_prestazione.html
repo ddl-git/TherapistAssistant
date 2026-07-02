@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Tipi prestazione{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="text-muted small text-decoration-none" href="{{ url_for('anagrafiche.index') }}"><i class="bi bi-arrow-left"></i> Anagrafiche</a>
+  <div class="page-eyebrow mt-2">Anagrafica</div>
+  <h1 class="h3 mb-1">Tipi prestazione</h1>
+  <p class="text-muted mb-0 small">Elenco dei tipi di prestazione (es. Seduta individuale, Prima visita, Coaching), usato nei menu a tendina di Tariffario ricavi/costi.</p>
+</div>
+
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Nome</th><th></th></tr></thead>
+    <tbody>
+      {% for r in righe %}
+        <tr>
+          <td>{{ r['Nome'] }}</td>
+          <td class="text-end">
+            <form method="post" class="d-inline" action="{{ url_for('anagrafiche.elimina_tipo_prestazione', row=r['_row']) }}"
+                  onsubmit="return confirm('Eliminare questo tipo prestazione? Le righe del tariffario che lo usano già non cambiano.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn icon-btn--danger" title="Elimina"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="2" class="text-muted text-center py-4">Nessun tipo prestazione ancora.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card-table p-4">
+  <h2 class="h6 mb-3 text-uppercase text-muted">Aggiungi tipo prestazione</h2>
+  <form method="post" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-12 col-sm-6">
+      <input type="text" class="form-control" name="nome" placeholder="Es. Seduta individuale" required>
+    </div>
+    <div class="col-12 col-sm-6">
+      <button type="submit" class="btn btn-primary">Aggiungi</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

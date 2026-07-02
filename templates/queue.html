@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Coda di validazione{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="page-eyebrow">Contabilità</div>
+  <h1 class="h3 mb-0">Da validare</h1>
+</div>
+
+{% if not events %}
+  <div class="card-table p-4 text-center text-muted">
+    <i class="bi bi-check2-circle fs-3 d-block mb-2"></i>
+    Nessun appuntamento da validare al momento.
+  </div>
+{% else %}
+  <div class="card-table">
+    <div class="list-group list-group-flush">
+      {% for event in events %}
+        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2 border-0 border-bottom">
+          <div>
+            <div class="fw-semibold">{{ event.title }}</div>
+            <div class="text-muted small">{{ event.start }}</div>
+          </div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-primary btn-sm"
+               href="{{ url_for('queue.validate_event', event_id=event.id, title=event.title, start=event.start) }}">
+              <i class="bi bi-check2"></i> Valida
+            </a>
+            <form method="post" action="{{ url_for('queue.ignore_event', event_id=event.id) }}"
+                  onsubmit="return confirm('Ignorare definitivamente questo evento?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn" title="Ignora"><i class="bi bi-x-lg"></i></button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

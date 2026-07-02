@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Test connessione{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="page-eyebrow">Diagnostica</div>
+  <h1 class="h3 mb-0">Test connessione Google</h1>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Google Sheets</div>
+  <div class="card-body">
+    {% if sheet_error %}
+      <div class="alert alert-danger">Errore: {{ sheet_error }}</div>
+    {% else %}
+      <p class="mb-1"><strong>Foglio:</strong> {{ sheet_title }}</p>
+      <p class="mb-1"><strong>Tab presenti:</strong>
+        {% if sheet_tabs %}{{ sheet_tabs | join(', ') }}{% else %}nessuno{% endif %}
+      </p>
+      <p class="text-muted small mb-0">
+        Se mancano i tab richiesti, esegui da terminale: <code>flask init-sheet</code>
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Google Calendar</div>
+  <div class="card-body">
+    {% if calendar_error %}
+      <div class="alert alert-danger">Errore: {{ calendar_error }}</div>
+    {% elif not events %}
+      <p class="mb-0">Nessun evento trovato negli ultimi 30 giorni.</p>
+    {% else %}
+      <ul class="list-group">
+        {% for event in events %}
+          <li class="list-group-item">
+            {{ event.get('summary', '(senza titolo)') }}
+            <span class="text-muted small">
+              — {{ event.get('start', {}).get('dateTime', event.get('start', {}).get('date')) }}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

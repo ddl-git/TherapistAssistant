@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Voci di costo{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="text-muted small text-decoration-none" href="{{ url_for('anagrafiche.index') }}"><i class="bi bi-arrow-left"></i> Anagrafiche</a>
+  <div class="page-eyebrow mt-2">Anagrafica</div>
+  <h1 class="h3 mb-1">Voci di costo</h1>
+  <p class="text-muted mb-0 small">Categorie di costo (es. Fee piattaforma, Tasse, Enpap), usate nel Tariffario costi. Più voci sullo stesso tariffario si sommano tra loro.</p>
+</div>
+
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Nome</th><th></th></tr></thead>
+    <tbody>
+      {% for r in righe %}
+        <tr>
+          <td>{{ r['Nome'] }}</td>
+          <td class="text-end">
+            <form method="post" class="d-inline" action="{{ url_for('anagrafiche.elimina_voce_costo', row=r['_row']) }}"
+                  onsubmit="return confirm('Eliminare questa voce di costo? Le righe del tariffario che la usano già non cambiano.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn icon-btn--danger" title="Elimina"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="2" class="text-muted text-center py-4">Nessuna voce di costo ancora.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card-table p-4">
+  <h2 class="h6 mb-3 text-uppercase text-muted">Aggiungi voce di costo</h2>
+  <form method="post" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-12 col-sm-6">
+      <input type="text" class="form-control" name="nome" placeholder="Es. Fee piattaforma" required>
+    </div>
+    <div class="col-12 col-sm-6">
+      <button type="submit" class="btn btn-primary">Aggiungi</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+flask>=3,<4
+flask-wtf>=1,<2
+gspread>=6,<7
+google-auth>=2,<3
+google-api-python-client>=2,<3
+python-dotenv>=1,<2
+openpyxl>=3,<4
+gunicorn>=22,<23

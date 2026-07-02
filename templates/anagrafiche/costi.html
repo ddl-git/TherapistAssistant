@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Tariffario costi{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="text-muted small text-decoration-none" href="{{ url_for('anagrafiche.index') }}"><i class="bi bi-arrow-left"></i> Anagrafiche</a>
+  <div class="page-eyebrow mt-2">Anagrafica</div>
+  <h1 class="h3 mb-1">Tariffario costi</h1>
+  <p class="text-muted mb-0 small">
+    Ogni riga è una voce di costo (es. Fee piattaforma, Tasse, Enpap) e si sommano tutte tra loro
+    quando si applicano allo stesso movimento. Lascia "Piattaforma" o "Tipo prestazione" su "Tutte"
+    per applicare la voce trasversalmente (es. Enpap/Tasse su ogni piattaforma).
+  </p>
+</div>
+
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Piattaforma</th><th>Tipo prestazione</th><th>Voce di costo</th><th>Tipo costo</th><th>Valore</th><th></th></tr></thead>
+    <tbody>
+      {% for r in righe %}
+        <tr>
+          <td><span class="badge text-bg-light border">{{ r['Piattaforma'] or 'Tutte' }}</span></td>
+          <td>{{ r['Tipo prestazione'] or 'Tutte' }}</td>
+          <td>{{ r['Voce di costo'] }}</td>
+          <td>{{ r['Tipo costo'] }}</td>
+          <td>{{ r['Valore'] }}{{ '%' if r['Tipo costo'] == 'percentuale' else ' €' }}</td>
+          <td class="text-end text-nowrap">
+            <a class="icon-btn" title="Modifica" href="{{ url_for('anagrafiche.costi', edit=r['_row']) }}"><i class="bi bi-pencil"></i></a>
+            <form method="post" class="d-inline" action="{{ url_for('anagrafiche.elimina_costo', row=r['_row']) }}"
+                  onsubmit="return confirm('Eliminare questa riga?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn icon-btn--danger" title="Elimina"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-muted text-center py-4">Nessuna riga ancora.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card-table p-4">
+<h2 class="h6 mb-3 text-uppercase text-muted">{{ 'Modifica riga' if editing else 'Aggiungi riga' }}</h2>
+<form method="post" class="row g-2">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if editing %}<input type="hidden" name="row" value="{{ editing['_row'] }}">{% endif %}
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Piattaforma</label>
+    <select class="form-select" name="piattaforma">
+      <option value="">Tutte</option>
+      {% for p in piattaforme %}
+        <option value="{{ p['Nome'] }}" {{ 'selected' if editing and editing['Piattaforma'] == p['Nome'] else '' }}>{{ p['Nome'] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Tipo prestazione</label>
+    <select class="form-select" name="tipo_prestazione">
+      <option value="">Tutte</option>
+      {% for t in tipi_prestazione %}
+        <option value="{{ t['Nome'] }}" {{ 'selected' if editing and editing['Tipo prestazione'] == t['Nome'] else '' }}>{{ t['Nome'] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Voce di costo</label>
+    <select class="form-select" name="voce_costo" required>
+      <option value="" disabled {{ '' if editing else 'selected' }}>Seleziona...</option>
+      {% for v in voci_costo %}
+        <option value="{{ v['Nome'] }}" {{ 'selected' if editing and editing['Voce di costo'] == v['Nome'] else '' }}>{{ v['Nome'] }}</option>
+      {% endfor %}
+    </select>
+    {% if not voci_costo %}
+      <div class="form-text text-danger">Nessuna voce di costo: aggiungine una in <a href="{{ url_for('anagrafiche.voci_costo') }}">Voci di costo</a>.</div>
+    {% endif %}
+  </div>
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Tipo costo</label>
+    <select class="form-select" name="tipo_costo">
+      <option value="percentuale" {{ 'selected' if editing and editing['Tipo costo'] == 'percentuale' else '' }}>Percentuale</option>
+      <option value="fisso" {{ 'selected' if editing and editing['Tipo costo'] == 'fisso' else '' }}>Importo fisso</option>
+    </select>
+  </div>
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Valore</label>
+    <input type="text" inputmode="decimal" class="form-control" name="valore" value="{{ editing['Valore'] if editing else '' }}" required>
+  </div>
+  <div class="col-12">
+    <button type="submit" class="btn btn-primary">{{ 'Salva modifiche' if editing else 'Aggiungi' }}</button>
+    {% if editing %}<a class="btn btn-link" href="{{ url_for('anagrafiche.costi') }}">Annulla</a>{% endif %}
+  </div>
+</form>
+</div>
+{% endblock %}

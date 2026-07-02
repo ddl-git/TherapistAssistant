@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Pazienti{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a class="text-muted small text-decoration-none" href="{{ url_for('anagrafiche.index') }}"><i class="bi bi-arrow-left"></i> Anagrafiche</a>
+  <div class="page-eyebrow mt-2">Anagrafica</div>
+  <h1 class="h3 mb-0">Pazienti</h1>
+</div>
+
+<div class="card-table table-responsive mb-4">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Nome</th><th>Contatto</th><th></th></tr></thead>
+    <tbody>
+      {% for r in righe %}
+        <tr>
+          <td>{{ r['Nome'] }}</td>
+          <td>{{ r['Contatto'] }}</td>
+          <td class="text-end">
+            <a class="icon-btn" title="Modifica" href="{{ url_for('anagrafiche.pazienti', edit=r['_row']) }}"><i class="bi bi-pencil"></i></a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="text-muted text-center py-4">Nessun paziente ancora.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card-table p-4">
+  <h2 class="h6 mb-3 text-uppercase text-muted">{{ 'Modifica paziente' if editing else 'Aggiungi paziente' }}</h2>
+  <form method="post" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if editing %}<input type="hidden" name="row" value="{{ editing['_row'] }}">{% endif %}
+    <div class="col-12 col-sm-6">
+      <label class="form-label">Nome</label>
+      <input type="text" class="form-control" name="nome" value="{{ editing['Nome'] if editing else '' }}" required>
+    </div>
+    <div class="col-12 col-sm-6">
+      <label class="form-label">Contatto</label>
+      <input type="text" class="form-control" name="contatto" value="{{ editing['Contatto'] if editing else '' }}">
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">{{ 'Salva modifiche' if editing else 'Aggiungi' }}</button>
+      {% if editing %}<a class="btn btn-link" href="{{ url_for('anagrafiche.pazienti') }}">Annulla</a>{% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Modifica movimento{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="page-eyebrow">Contabilità</div>
+  <h1 class="h3 mb-0">Modifica movimento</h1>
+</div>
+
+<div class="card-table p-4">
+<form method="post" class="row g-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Data</label>
+    <input type="date" class="form-control" name="data" value="{{ m.data }}" required>
+  </div>
+
+  <div class="col-12 col-sm-5">
+    <label class="form-label">Paziente</label>
+    <input type="text" class="form-control" name="paziente" value="{{ m.paziente }}" required>
+  </div>
+
+  <div class="col-12 col-sm-4">
+    <label class="form-label">Stato pagamento</label>
+    <select class="form-select" name="stato_pagamento">
+      <option value="Da incassare" {{ 'selected' if m.stato_pagamento == 'Da incassare' else '' }}>Da incassare</option>
+      <option value="Incassato" {{ 'selected' if m.stato_pagamento == 'Incassato' else '' }}>Incassato</option>
+    </select>
+  </div>
+
+  <div class="col-12 col-sm-6">
+    <label class="form-label">Piattaforma / Tipo prestazione</label>
+    <select class="form-select" id="combo" name="combo" required onchange="aggiornaPrezzo()">
+      {% for c in combos %}
+        <option value="{{ c.value }}" data-prezzo="{{ c.prezzo }}" {{ 'selected' if c.value == combo_attuale else '' }}>{{ c.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Prezzo lordo (€)</label>
+    <input type="text" inputmode="decimal" class="form-control" id="prezzo_lordo" name="prezzo_lordo" value="{{ m.lordo }}" required>
+  </div>
+
+  <div class="col-12 col-sm-3">
+    <label class="form-label">Metodo pagamento</label>
+    <input type="text" class="form-control" name="metodo_pagamento" value="{{ m.metodo_pagamento }}">
+  </div>
+
+  <div class="col-12">
+    <label class="form-label">Note</label>
+    <textarea class="form-control" name="note" rows="2">{{ m.note }}</textarea>
+  </div>
+
+  <div class="col-12">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Salva modifiche</button>
+    <a class="btn btn-link" href="{{ url_for('movimenti.list_movimenti') }}">Annulla</a>
+  </div>
+</form>
+</div>
+
+<script>
+function aggiornaPrezzo() {
+  var select = document.getElementById('combo');
+  var opt = select.options[select.selectedIndex];
+  var prezzo = opt.getAttribute('data-prezzo');
+  if (prezzo) {
+    document.getElementById('prezzo_lordo').value = prezzo;
+  }
+}
+</script>
+{% endblock %}

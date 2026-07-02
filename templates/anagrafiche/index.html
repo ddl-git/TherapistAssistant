@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Anagrafiche{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="page-eyebrow">Contabilità</div>
+  <h1 class="h3 mb-0">Anagrafiche</h1>
+</div>
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+  <div class="col">
+    <a class="stat-card d-block text-decoration-none text-reset h-100" href="{{ url_for('anagrafiche.pazienti') }}">
+      <i class="bi bi-people fs-4 text-muted"></i>
+      <div class="fw-semibold mt-2">Pazienti</div>
+      <div class="text-muted small">Nome e contatto</div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="stat-card d-block text-decoration-none text-reset h-100" href="{{ url_for('anagrafiche.piattaforme') }}">
+      <i class="bi bi-diagram-3 fs-4 text-muted"></i>
+      <div class="fw-semibold mt-2">Piattaforme</div>
+      <div class="text-muted small">Serenis, Unobravo, Privato...</div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="stat-card d-block text-decoration-none text-reset h-100" href="{{ url_for('anagrafiche.tipi_prestazione') }}">
+      <i class="bi bi-clipboard2-pulse fs-4 text-muted"></i>
+      <div class="fw-semibold mt-2">Tipi prestazione</div>
+      <div class="text-muted small">Prima seduta, Percorso, Coaching...</div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="stat-card d-block text-decoration-none text-reset h-100" href="{{ url_for('anagrafiche.voci_costo') }}">
+      <i class="bi bi-receipt fs-4 text-muted"></i>
+      <div class="fw-semibold mt-2">Voci di costo</div>
+      <div class="text-muted small">Fee piattaforma, Tasse, Enpap...</div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="stat-card d-block text-decoration-none text-reset h-100" href="{{ url_for('anagrafiche.ricavi') }}">
+      <i class="bi bi-cash-coin fs-4 text-muted"></i>
+      <div class="fw-semibold mt-2">Tariffario ricavi</div>
+      <div class="text-muted small">Piattaforma + tipo prestazione + prezzo lordo</div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="stat-card d-block text-decoration-none text-reset h-100" href="{{ url_for('anagrafiche.costi') }}">
+      <i class="bi bi-percent fs-4 text-muted"></i>
+      <div class="fw-semibold mt-2">Tariffario costi</div>
+      <div class="text-muted small">Commissioni e trattenute per voce</div>
+    </a>
+  </div>
+  <div class="col">
+    <a class="stat-card d-block text-decoration-none text-reset h-100" href="{{ url_for('anagrafiche.costi_fissi') }}">
+      <i class="bi bi-building fs-4 text-muted"></i>
+      <div class="fw-semibold mt-2">Costi fissi</div>
+      <div class="text-muted small">Affitto, abbonamenti e altre spese periodiche</div>
+    </a>
+  </div>
+</div>
+{% endblock %}
