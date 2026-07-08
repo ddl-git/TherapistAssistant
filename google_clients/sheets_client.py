@@ -24,7 +24,7 @@ def _read_records_cached(tab_name: str) -> list[dict]:
     cached = _cache.get(tab_name)
     if cached is not None and (time.monotonic() - cached[0]) < _CACHE_TTL_SECONDS:
         return cached[1]
-    records = with_retry(lambda: get_worksheet(tab_name).get_all_records())
+    records = with_retry(lambda: get_worksheet(tab_name).get_all_records(numericise_ignore=["all"]))
     _cache[tab_name] = (time.monotonic(), records)
     return records
 
