@@ -68,10 +68,27 @@
   <div class="text-muted small" id="conteggio-visibili">{{ riepilogo.conteggio_tutti }} movimenti</div>
 </div>
 
+<form id="form-pagamento-massivo" method="post" action="{{ url_for('movimenti.aggiorna_pagamento_massivo') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="mese" value="{{ mese_selezionato }}">
+</form>
+
+<div class="d-none align-items-center gap-2 flex-wrap mb-3 p-2 bg-light border rounded" id="barra-azioni-massive">
+  <span class="small fw-semibold" id="conteggio-selezionati">0 selezionati</span>
+  <select class="form-select form-select-sm" name="stato_pagamento" form="form-pagamento-massivo" style="max-width: 10rem;">
+    <option value="Incassato">Incassato</option>
+    <option value="Da incassare">Da incassare</option>
+  </select>
+  <input type="text" class="form-control form-control-sm" name="metodo_pagamento" form="form-pagamento-massivo"
+         placeholder="Metodo (opzionale)" style="max-width: 10rem;">
+  <button type="submit" class="btn btn-sm btn-primary" form="form-pagamento-massivo">Applica a selezionati</button>
+</div>
+
 <div class="card-table table-responsive">
   <table class="table table-sm align-middle mb-0" id="tabella-movimenti">
     <thead>
       <tr>
+        <th><input type="checkbox" class="form-check-input" id="seleziona-tutti"></th>
         <th>Data</th><th>Paziente</th><th>Piattaforma</th><th>Prestazione</th>
         <th>Lordo</th>
         {% for voce in voci_colonne %}<th>{{ voce }}</th>{% endfor %}
@@ -81,6 +98,10 @@
     <tbody>
       {% for m in movimenti %}
         <tr data-paziente="{{ m.paziente|lower }}" data-stato="{{ m.stato_pagamento|lower }}">
+          <td>
+            <input type="checkbox" class="form-check-input riga-checkbox" form="form-pagamento-massivo"
+                   name="righe" value="{{ m._row }}">
+          </td>
           <td>{{ m.data.strftime('%d %b %Y') if m.data else '–' }}</td>
           <td>{{ m.paziente }}</td>
           <td><span class="badge text-bg-light border">{{ m.piattaforma }}</span></td>
@@ -120,7 +141,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="{{ 9 + voci_colonne|length }}" class="text-muted text-center py-4">
+        <tr><td colspan="{{ 10 + voci_colonne|length }}" class="text-muted text-center py-4">
           {% if mese_selezionato %}Nessun movimento in questo mese.{% else %}Nessun movimento ancora registrato.{% endif %}
         </td></tr>
       {% endfor %}
@@ -136,6 +157,30 @@
   var conteggio = document.getElementById('conteggio-visibili');
   var statoAttivo = 'tutti';
 
+  var selezionaTutti = document.getElementById('seleziona-tutti');
+  var barraAzioni = document.getElementById('barra-azioni-massive');
+  var conteggioSelezionati = document.getElementById('conteggio-selezionati');
+  var formMassivo = document.getElementById('form-pagamento-massivo');
+
+  function checkboxVisibili() {
+    return Array.prototype.filter.call(rows, function (row) {
+      return row.style.display !== 'none';
+    }).map(function (row) {
+      return row.querySelector('.riga-checkbox');
+    });
+  }
+
+  function aggiornaBarraSelezione() {
+    var selezionati = document.querySelectorAll('.riga-checkbox:checked').length;
+    barraAzioni.classList.toggle('d-none', selezionati === 0);
+    barraAzioni.classList.toggle('d-flex', selezionati > 0);
+    conteggioSelezionati.textContent = selezionati + ' selezionat' + (selezionati === 1 ? 'o' : 'i');
+
+    var visibili = checkboxVisibili();
+    var tuttiSelezionati = visibili.length > 0 && visibili.every(function (cb) { return cb.checked; });
+    selezionaTutti.checked = tuttiSelezionati;
+  }
+
   function applica() {
     var query = (searchInput.value || '').toLowerCase();
     var visibili = 0;
@@ -144,9 +189,15 @@
       var matchStato = statoAttivo === 'tutti' || row.dataset.stato === statoAttivo;
       var visibile = matchTesto && matchStato;
       row.style.display = visibile ? '' : 'none';
-      if (visibile) visibili++;
+      if (visibile) {
+        visibili++;
+      } else {
+        var cb = row.querySelector('.riga-checkbox');
+        if (cb) cb.checked = false;
+      }
     });
     conteggio.textContent = visibili + ' movimenti';
+    aggiornaBarraSelezione();
   }
 
   if (searchInput) {
@@ -160,6 +211,26 @@
       applica();
     });
   });
+
+  document.querySelectorAll('.riga-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', aggiornaBarraSelezione);
+  });
+
+  if (selezionaTutti) {
+    selezionaTutti.addEventListener('change', function () {
+      checkboxVisibili().forEach(function (cb) { cb.checked = selezionaTutti.checked; });
+      aggiornaBarraSelezione();
+    });
+  }
+
+  if (formMassivo) {
+    formMassivo.addEventListener('submit', function (e) {
+      var selezionati = document.querySelectorAll('.riga-checkbox:checked').length;
+      if (selezionati === 0 || !confirm('Aggiornare lo stato di pagamento per ' + selezionati + ' movimenti selezionati?')) {
+        e.preventDefault();
+      }
+    });
+  }
 })();
 </script>
 {% endblock %}

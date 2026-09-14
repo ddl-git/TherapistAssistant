@@ -88,6 +88,19 @@ def aggiorna_pagamento(row):
     return redirect(next_url or url_for("movimenti.list_movimenti"))
 
 
+@bp.route("/movimenti/pagamento-massivo", methods=["POST"])
+@login_required
+def aggiorna_pagamento_massivo():
+    righe = request.form.getlist("righe", type=int)
+    stato = request.form.get("stato_pagamento", "Da incassare")
+    metodo = request.form.get("metodo_pagamento", "").strip()
+    for row in righe:
+        report_service.update_pagamento(row, stato, metodo)
+
+    mese_param = request.form.get("mese", "")
+    return redirect(url_for("movimenti.list_movimenti", mese=mese_param))
+
+
 @bp.route("/movimenti/<int:row>/modifica", methods=["GET", "POST"])
 @login_required
 def modifica_movimento(row):
