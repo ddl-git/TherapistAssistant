@@ -1,3 +1,5 @@
+from calendar import monthrange
+from datetime import date
 from urllib.parse import urlparse
 
 from flask import Blueprint, redirect, render_template, request, url_for
@@ -19,11 +21,29 @@ def _next_sicuro(url_arg):
     return url_arg
 
 
+def _mese_richiesto(value):
+    """Interpreta il parametro `mese` (YYYY-MM). None = tutti i mesi."""
+    if not value:
+        return None
+    try:
+        anno, mese = (int(p) for p in value.split("-", 1))
+        return date(anno, mese, 1)
+    except (TypeError, ValueError):
+        return None
+
+
 @bp.route("/movimenti")
 @login_required
 def list_movimenti():
+    mese_param = request.args.get("mese", date.today().strftime("%Y-%m"))
+    primo_del_mese = _mese_richiesto(mese_param)
+    date_from = date_to = None
+    if primo_del_mese:
+        date_from = primo_del_mese
+        date_to = primo_del_mese.replace(day=monthrange(primo_del_mese.year, primo_del_mese.month)[1])
+
     movimenti = sorted(
-        report_service.list_movimenti(),
+        report_service.list_movimenti(date_from, date_to),
         key=lambda m: m["data"] or "",
         reverse=True,
     )
@@ -50,7 +70,11 @@ def list_movimenti():
     }
 
     return render_template(
-        "movimenti.html", movimenti=movimenti, voci_colonne=voci_colonne, riepilogo=riepilogo
+        "movimenti.html",
+        movimenti=movimenti,
+        voci_colonne=voci_colonne,
+        riepilogo=riepilogo,
+        mese_selezionato=mese_param if primo_del_mese else "",
     )
 
 
@@ -62,6 +86,19 @@ def aggiorna_pagamento(row):
     report_service.update_pagamento(row, stato, metodo)
     next_url = _next_sicuro(request.form.get("next"))
     return redirect(next_url or url_for("movimenti.list_movimenti"))
+
+
+@bp.route("/movimenti/pagamento-massivo", methods=["POST"])
+@login_required
+def aggiorna_pagamento_massivo():
+    righe = request.form.getlist("righe", type=int)
+    stato = request.form.get("stato_pagamento", "Da incassare")
+    metodo = request.form.get("metodo_pagamento", "").strip()
+    for row in righe:
+        report_service.update_pagamento(row, stato, metodo)
+
+    mese_param = request.form.get("mese", "")
+    return redirect(url_for("movimenti.list_movimenti", mese=mese_param))
 
 
 @bp.route("/movimenti/<int:row>/modifica", methods=["GET", "POST"])
